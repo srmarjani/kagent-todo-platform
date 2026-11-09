@@ -1,0 +1,7 @@
+config:
+  server:
+    grpcReflection: true
+providers:
+  default: "anthropic"
+  anthropic:
+    model: "claude-haiku-5-5"
