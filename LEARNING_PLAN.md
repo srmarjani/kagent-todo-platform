@@ -4,9 +4,9 @@ Written 2026-11-09 for Razi. Replaces `~/Tutorial/kagent_tutorial/LEARNING_PLAN.
 
 **The idea.** One kind cluster. kagent 1.x runs four agents: `team-lead`, `backend-dev`, `frontend-dev`, `devops`.
 They build a small FastAPI + HTML/JS todo app in a GitHub repo through pull requests you review, and deploy it into
-the same cluster. agentgateway sits between the agents and Anthropic. agentregistry catalogs the tools, skills and
-agents. You type every command and write every file. Claude explains, reviews and reads; it never applies
-(rules in `CLAUDE.md`).
+the same cluster. agentgateway sits between the agents and the LLM (Anthropic models through OpenRouter).
+agentregistry catalogs the tools, skills and agents. You type every command and write every file. Claude explains,
+reviews and reads; it never applies (rules in `CLAUDE.md`).
 
 ## How to use this plan
 
@@ -15,8 +15,10 @@ agents. You type every command and write every file. Claude explains, reviews an
   Keep `notes/GLOSSARY.md` in your own words.
 - **verified** = checked against the 1.x docs or a release page on 2026-11-09.
   **find out** = the docs did not answer it; you discover it and write the answer in the log.
-- Before Phase 1, check https://github.com/kagent-dev/kagent/releases. If `v1.0.0` (GA) is published, use it
-  everywhere instead of `v1.0.0-rc3` and read its notes for breaking changes.
+- kagent `v1.0.0` (GA) was published on 2026-11-09, after Phase 1 had started on `v1.0.0-rc3`. Decision
+  (2026-11-10): stay on rc3 through all phases and upgrade in Phase 8. Upgrade earlier only if an rc3 bug blocks
+  you. The likely ones: MCP tool discovery when a Session resumes (Phase 3, fixed in 1.0.0 by
+  https://github.com/kagent-dev/kagent/pull/3560) and `invoke_agent` (Phase 4.3).
 - Ask Claude for: concepts, a review of YAML you wrote, help reading an error. Not for building.
 
 ## Effort (part time, hands-on hours)
@@ -40,13 +42,13 @@ Core (0–5): about 30–40 h. With optional phases: about 45 h.
 | Component | Version | Notes |
 |---|---|---|
 | kind / node image | v0.33.0 / `kindest/node:v1.37.0` | already installed / pulled (**verified**) |
-| kagent CLI + charts | `v1.0.0-rc3` | bump to `v1.0.0` if released |
+| kagent CLI + charts | `v1.0.0-rc3` | `v1.0.0` is out; upgrade in Phase 8 (decision 2026-11-10) |
 | Agent Substrate | `v1.0.0` (installed by the kagent CLI) | worker image `ateworker-gvisor:v1.0.0` |
 | kagent-tools | 0.3.0 | bundled `kagent-tool-server` |
-| Gateway API CRDs | v1.6.3 | standard channel |
-| agentgateway | v1.7.0 | charts at `oci://cr.agentgateway.dev/charts/` |
+| Gateway API CRDs | v1.6.3 | standard channel (re-checked 2026-11-10) |
+| agentgateway | v1.7.0 (latest, re-checked 2026-11-10) | charts at `oci://cr.agentgateway.dev/charts/`; LLM via `AgentgatewayModel` |
 | agentregistry | v0.4.0 (`arctl` same) | 0.3.3 is the only version known to work with kagent **0.x** deployments; see Phase 5 |
-| Models | `claude-haiku-5-5` for learning, `claude-sonnet-5-5` for coding agents | cost control |
+| Models (via OpenRouter) | `anthropic/claude-haiku-5.5` for learning, Sonnet 5.5 for coding agents | cost control; check the Sonnet ID on openrouter.ai |
 
 ## Rules for the whole project
 
@@ -66,7 +68,7 @@ Core (0–5): about 30–40 h. With optional phases: about 45 h.
 LEARNING_PLAN.md  CLAUDE.md  versions.env  .env (gitignored)
 cluster/    kind-config.yaml
 kagent/     kagent-config.yaml, kagent-values.yaml
-gateway/    gateway.yaml, anthropic-backend.yaml, anthropic-route.yaml, (later) policies
+gateway/    gateway.yaml, openrouter-model.yaml, (later) sonnet model, policies
 agents/     00-harness.yaml, 01-hello.yaml, 10-modelconfigs.yaml, 20-mcp-github.yaml,
             21-mcp-kagent.yaml, 30-backend-dev.yaml, 31-frontend-dev.yaml, 32-devops.yaml,
             40-team-lead.yaml, 50-egress.yaml
@@ -84,7 +86,7 @@ you ──(UI :8082 / CLI / Claude Code MCP)──▶ kagent-controller :8083 �
                                                                           on WorkerPool kagent-default)
                                                                             │ default-deny egress
                                                                             ▼
-                                                     atenet-egress ──▶ ai-gateway (agentgateway) ──▶ Anthropic
+                                                     atenet-egress ──▶ ai-gateway (agentgateway) ──▶ OpenRouter
                                                                    ──▶ GitHub MCP (api.githubcopilot.com)
                                                                    ──▶ kagent-tool-server (k8s_* tools)
                                                                    ──▶ kagent-controller /mcp (invoke_agent)
@@ -195,33 +197,49 @@ Pitfalls (**verified**)
 
 ## Phase 2: agentgateway in front of the LLM (3–4 h)
 
-Goal: the Anthropic key leaves kagent and lives in the gateway; one place to see, route and later limit LLM traffic.
+Goal: the OpenRouter key leaves kagent and lives in the gateway; one place to see, route and later limit LLM traffic.
+
+Updated 2026-11-10 for the latest agentgateway. v1.7.0 is still the newest release, and the "latest" docs are the
+1.7.x docs (**verified**). This phase uses its model-centric API, `AgentgatewayModel` (`v1alpha1`, on by default):
+one resource per model that clients may ask for, attached to the Gateway listener; the gateway builds the routing.
+The older route-centric pair `AgentgatewayBackend` + `HTTPRoute` (what the webinar demos use) still works, and
+Phase 6 uses it for MCP. v1.7.0 has a built-in `Openrouter` provider (base URL `https://openrouter.ai/api/v1`,
+**verified** in `crates/llm/src/custom.rs` at tag v1.7.0).
 
 Read
 - https://agentgateway.dev/docs/kubernetes/latest/documentation/quickstart/install/
-- https://agentgateway.dev/docs/kubernetes/latest/documentation/quickstart/llm/
-- Local working example: `~/Tutorial/webinar-demos/02-multi-agent-skills/gateway/*.yaml`
-  (Anthropic backend with `policies.ai.routes`, HTTPRoute `/anthropic`).
+- https://agentgateway.dev/docs/kubernetes/latest/documentation/quickstart/llm/ (it uses `provider: OpenAI`; you use
+  `Openrouter`)
+- https://agentgateway.dev/docs/kubernetes/latest/documentation/llm/models/about/ (model-centric vs. route-centric
+  table, listener opt-in)
+- Old route-centric pattern, for comparison only: `~/Tutorial/webinar-demos/02-multi-agent-skills/gateway/*.yaml`.
 
 Do
-- [ ] Install Gateway API CRDs v1.6.3 (`kubectl apply --server-side`), then `helm upgrade -i agentgateway-crds` and
-      `agentgateway` v1.7.0 into `agentgateway-system` (**verified** commands on the install page).
-      If `cr.agentgateway.dev` is unreachable from your network, try `oci://ghcr.io/agentgateway/charts/...`
-      (the agent-factory demo did this).
-- [ ] `gateway/gateway.yaml`: Gateway `ai-gateway`, class `agentgateway`, HTTP :80, routes from all namespaces.
-      In kind the Service stays `<pending>` as LoadBalancer; that is fine for in-cluster use (or set ClusterIP via
-      `AgentgatewayParameters`, see `~/Tutorial/agent-factory-demo/platform/gateway/gateway.yaml`).
-- [ ] Secret with the **raw** key (no `Bearer`, **verified** by the webinar notes):
-      ```bash
-      kubectl --context kind-todo-agents -n agentgateway-system create secret generic anthropic-secret --from-literal=Authorization="$ANTHROPIC_API_KEY"
-      ```
-- [ ] `AgentgatewayBackend` (`ai.provider.anthropic: {}`, `policies.ai.routes` with `/v1/messages: Messages`,
-      `policies.auth.secretRef: anthropic-secret`) and an HTTPRoute `/anthropic`. Test with one tiny request through
-      a port-forward of the gateway proxy (`max_tokens: 16`).
-- [ ] New ModelConfig `anthropic-via-gateway` in `kagent`: `provider: Anthropic`,
-      `anthropic.baseUrl: http://ai-gateway.agentgateway-system.svc.cluster.local/anthropic`, model `claude-haiku-5-5`,
-      and a dummy key Secret (the gateway holds the real one). Point the `hello` template at it, new session, invoke.
-      Confirm the request in the gateway proxy logs.
+- [ ] Install Gateway API CRDs v1.6.3 (`kubectl apply --server-side --force-conflicts`), then
+      `helm upgrade -i agentgateway-crds` and `agentgateway` v1.7.0 into `agentgateway-system` (**verified**
+      commands on the install page). `kubectl api-resources --api-group=agentgateway.dev` must then list
+      `AgentgatewayModel`. If `cr.agentgateway.dev` is unreachable from your network, try
+      `oci://ghcr.io/agentgateway/charts/...` (the agent-factory demo did this).
+- [ ] `gateway/gateway.yaml`: Gateway `ai-gateway`, class `agentgateway`, HTTP :80, routes from all namespaces, and
+      `allowedRoutes.kinds` listing both `AgentgatewayModel` (group `agentgateway.dev`) and `HTTPRoute`. The model
+      kind turns on the LLM paths (`/v1/chat/completions`, `/v1/models`, ...); `HTTPRoute` keeps the listener open
+      for Phase 6. In kind the Service stays `<pending>` as LoadBalancer; that is fine for in-cluster use (or set
+      ClusterIP via `AgentgatewayParameters`, see `~/Tutorial/agent-factory-demo/platform/gateway/gateway.yaml`).
+- [ ] Secret `openrouter-secret` in `agentgateway-system` with the **raw** OpenRouter key under the key name
+      `Authorization` (no `Bearer`; the gateway adds it, **verified** in the LLM quickstart). Create it from `.env`
+      through stdin, the same way you created `kagent-openrouter` in Phase 1.
+- [ ] `gateway/openrouter-model.yaml`: one `AgentgatewayModel` in `agentgateway-system` with `parentRefs` (the
+      Gateway, section `http`), `provider: Openrouter`, `match.model: anthropic/claude-haiku-5.5` and
+      `policies.auth.secretRef` (`kubectl explain agentgatewaymodel.spec`). The model name goes in `match.model`
+      because `metadata.name` cannot contain `/`. Check that `status.parents` says Accepted, then test through a
+      port-forward of the proxy: `GET /v1/models`, then one `POST /v1/chat/completions` with `max_tokens: 16`.
+- [ ] New ModelConfig `openrouter-via-gateway` in `kagent`: `provider: OpenAI`,
+      `openAI.baseUrl: http://ai-gateway.agentgateway-system.svc.cluster.local/v1`, the same model
+      `anthropic/claude-haiku-5.5`, and a dummy key Secret (the gateway holds the real one). Point
+      `my-first-template` at it, wait for the new revision, new session, invoke. Confirm the request in the gateway
+      proxy logs.
+- [ ] When the new session works, delete the direct ModelConfig `openrouter-haiku-model-config` and the Secret
+      `kagent-openrouter`. **Find out**: what happens to an old Session pinned to the revision that used them?
 - [ ] **Find out**: did the egress gateway let the agent reach the in-cluster gateway without an `EgressPolicy`?
       (Model-provider destinations are inferred, **verified**, but the docs show no in-cluster example.) If not,
       write `agents/50-egress.yaml` with the gateway origin and add `egressPolicyRefs` to the Agent.
@@ -230,12 +248,21 @@ Do
 Check
 - [ ] `kubectl get secret -n kagent` shows the dummy key only; the real key exists only in `agentgateway-system`.
       A `hello` turn appears in the gateway logs.
+- [ ] A request for a model you did not declare (for example a Sonnet ID) is refused by the gateway with
+      `model_not_found` and never reaches OpenRouter. That is your first cost control.
 
-Teach-back: draw the request path Session, egress gateway, ai-gateway, Anthropic, and name which component holds
-which credential.
+Teach-back: draw the request path Session, egress gateway, ai-gateway, OpenRouter, and name which component holds
+which credential. Then say in one sentence when you would use `AgentgatewayModel` and when
+`AgentgatewayBackend` + `HTTPRoute`.
 
 Pitfalls
 - 401 from the gateway usually means a `Bearer ` prefix in the secret.
+- `model_not_found`: the model name kagent sends matches no `match.model`, or the listener does not allow the
+  `AgentgatewayModel` kind.
+- `AgentgatewayModel` is `v1alpha1`: fields can change in the next release. Trust `kubectl explain` on your cluster
+  over blog posts and old demos.
+- An `AgentgatewayPolicy` cannot target an `AgentgatewayModel`; per-model policies go in its inline `spec.policies`
+  (matters in Phase 6).
 - Do not pin an older agentgateway chart (v1.0.x fails the CRD cost budget on Kubernetes 1.37).
 
 ---
@@ -307,8 +334,9 @@ deploys it into the cluster.
       `spec.skills: - name: backend-dev, source: {oci: ghcr.io/<github-user>/kagent-skills/backend-dev@sha256:...}`.
 
 ### 4.2 Specialists alone (3–4 h)
-- [ ] `agents/10-modelconfigs.yaml`: add `sonnet-via-gateway` (`claude-sonnet-5-5`). Coding agents use it;
-      `hello` and `team-lead` stay on haiku until 4.3.
+- [ ] A second `AgentgatewayModel` in `gateway/` for the Sonnet ID, and ModelConfig `sonnet-via-gateway` (same
+      gateway `baseUrl`) in `agents/10-modelconfigs.yaml`. Coding agents use it; `hello` and `team-lead` stay on
+      haiku until 4.3.
 - [ ] `30-backend-dev.yaml`, `31-frontend-dev.yaml`: AgentTemplate (role prompt, repo layout from the README,
       GitHub write tools with `requireApproval` on `create_pull_request` only) + Agent on your Harness.
 - [ ] `32-devops.yaml`: GitHub tools + `kagent-tool-server` tools `k8s_apply_manifest`, `k8s_get_resources`,
@@ -316,7 +344,7 @@ deploys it into the cluster.
       `k8s_delete_resource`.
 - [ ] Run issue #1 through `backend-dev` (UI session so you can approve). Review the PR on GitHub, run it locally
       (`uvicorn`, `pytest`), merge. Then #2, then #3 with `frontend-dev`.
-- [ ] Count tokens per issue in the Anthropic console; write it in the log.
+- [ ] Count tokens and cost per issue on the OpenRouter activity page; write it in the log.
 
 ### 4.3 Team lead, two patterns (3–4 h)
 - [ ] **Pattern A, hand-off**: `40-team-lead.yaml` with `tools: - subAgent: {name, description, templateRef}` for the
@@ -392,7 +420,9 @@ Check
       move the PAT into `agentgateway-system`, repoint the `RemoteMCPServer`. Now both credentials live in the gateway.
 - [ ] Expose `team-lead` over A2A through the gateway with an `AgentgatewayPolicy` `apiKeyAuthentication`;
       call it with and without the key. (Pattern: `~/Tutorial/webinar-demos/youtube-series/03-virtual-mcp/readme.md`.)
-- [ ] Add a local rate limit and a prompt guard on the `/anthropic` route; trigger each once.
+- [ ] Add a rate limit and a prompt guard for the OpenRouter model (inline `spec.policies` on the
+      `AgentgatewayModel`, or an `AgentgatewayPolicy` on the Gateway for all models; **find out** which policies the
+      inline field supports); trigger each once.
 - [ ] Install the lightweight OTel stack (https://kagent.dev/docs/kagent/1.x/observability/lightweight-otel-stack/)
       and read one full team run as a trace.
 
@@ -402,6 +432,8 @@ Read: https://kagent.dev/docs/kagent/1.x/agents/agent-harness/ (Claude section)
 - [ ] Harness `claude-harness` (`spec.claude: {}`), ModelConfig Anthropic **without** `promptCaching`
       (**verified**: it is rejected), AgentTemplate with the `backend-dev` prompt and the GitHub `RemoteMCPServer`
       (whole server; partial tool selection is ignored on this harness, **verified**).
+      No Anthropic key: point `anthropic.baseUrl` at the gateway (its `Openrouter` preset also accepts the Anthropic
+      Messages format, **verified** in source); **find out** whether the harness works through it.
 - [ ] `EgressPolicy` for `https://github.com` and `https://pypi.org` / `https://files.pythonhosted.org` so Claude Code
       can clone, `pip install`, run `pytest`, push. **Find out**: how to let git push without the PAT entering the sandbox.
       Candidate: git sends a placeholder header via `-c http.extraHeader="Authorization: Basic x"` and the EgressPolicy
@@ -414,6 +446,9 @@ Read: https://kagent.dev/docs/kagent/1.x/agents/agent-harness/ (Claude section)
 `notes/RETRO.md`: for kagent, agentgateway, agentregistry and Agent Substrate, one paragraph each: what it is for,
 what it did well, what hurt, open **find out** items you could not answer, and anything worth reporting upstream
 (rc3 bugs you hit). Decide what you would build next.
+
+- [ ] Upgrade kagent `v1.0.0-rc3` → `v1.0.0` with Helm (CRDs, Substrate, kagent; `pg_dump` first; see the upgrade
+      line in Deep dives). Then retest `invoke_agent` from Claude Code and report it upstream if it still fails.
 
 ---
 
@@ -472,3 +507,17 @@ From Phase 1 (2026-11-10):
 - agentgateway releases (v1.7.0): https://github.com/agentgateway/agentgateway/releases
 - agentgateway install: https://agentgateway.dev/docs/kubernetes/latest/documentation/quickstart/install/
 - agentregistry releases (v0.4.0): https://github.com/agentregistry-dev/agentregistry/releases
+
+## Facts verified on 2026-11-10 (sources)
+
+- kagent `v1.0.0` published 2026-11-09: https://github.com/kagent-dev/kagent/releases/tag/v1.0.0
+- agentgateway v1.7.0 (2026-10-27) is still the newest release; the "latest" docs are 1.7.x (older ones under
+  1.4.x–1.6.x): https://github.com/agentgateway/agentgateway/releases
+- `AgentgatewayModel` (`agentgateway.dev/v1alpha1`) ships in the v1.7.0 `agentgateway-crds` chart; `Openrouter` is
+  in its `spec.provider` enum.
+- `Openrouter` preset: base URL `https://openrouter.ai/api/v1`; formats Completions, Messages, Responses,
+  Embeddings, Rerank: https://github.com/agentgateway/agentgateway/blob/v1.7.0/crates/llm/src/custom.rs
+- Model-centric vs. route-centric, listener opt-in, policies on models:
+  https://agentgateway.dev/docs/kubernetes/latest/documentation/llm/models/about/
+- LLM quickstart (Secret key `Authorization` with the raw key, `allowedRoutes.kinds`, `AgentgatewayModel`):
+  https://agentgateway.dev/docs/kubernetes/latest/documentation/quickstart/llm/
