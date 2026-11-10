@@ -170,13 +170,13 @@ Do
       Send a second message; confirm it remembers the first (state survived suspend). Watch `ate-system` resources
       during and after the invoke (`kubectl api-resources | grep -i ate`).
       **Find out**: which object is the running Actor and what it looks like once suspended.
-- [ ] UI: `kubectl port-forward -n kagent svc/kagent-ui 8082:8080` then http://localhost:8082. Chat with `hello` there.
-- [ ] A2A card: port-forward `svc/kagent-controller 8083:8083`, then
+- [x] UI: `kubectl port-forward -n kagent svc/kagent-ui 8082:8080` then http://localhost:8082. Chat with `hello` there.
+- [x] A2A card: port-forward `svc/kagent-controller 8083:8083`, then
       `curl -s localhost:8083/agents/kagent/hello/.well-known/agent-card.json | jq .`
       (agents live at `/agents/{namespace}/{name}` per the release notes; the exact card path is a **find out**).
-- [ ] Talk to your agent from Claude Code: `claude mcp add --transport http kagent http://localhost:8083/mcp --scope project`,
+- [x] Talk to your agent from Claude Code: `claude mcp add --transport http kagent http://localhost:8083/mcp --scope project`,
       then ask Claude Code to list agents and invoke `hello` (**verified** tools: `list_agents`, `invoke_agent`).
-- [ ] Change the system prompt, re-apply, invoke on the **old** session (unchanged) and on a **new** session (changed).
+- [x] Change the system prompt, re-apply, invoke on the **old** session (unchanged) and on a **new** session (changed).
       This is the revision model.
 
 Check
@@ -452,6 +452,9 @@ From Phase 1 (2026-11-10):
   (https://kagent.dev/docs/kagent/latest/operations/upgrade/).
 - OpenRouter: `provider: OpenAI` + `openAI.baseUrl: https://openrouter.ai/api/v1`, model ID with a dot
   (`anthropic/claude-haiku-5.5`), why the `/v1` path works.
+- MCP `invoke_agent` from Claude Code: kagent created the Session and Task, but Claude Code rejected the reply as a
+  "malformed task handle" and the Task was canceled after ~1 s. Retest after the 1.0.0 upgrade; if it still fails,
+  report it upstream (Phase 8).
 
 ## Facts verified on 2026-11-09 (sources)
 
