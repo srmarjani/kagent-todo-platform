@@ -6,8 +6,7 @@ metadata:
 spec:
   description: My first kagent agent
   modelConfig:
-    # Default config created by the kagent install guide
-    name: default-model-config
+    name: openrouter-haiku-model-config
   systemPrompt: You are a concise, helpful assistant.
 ---
 apiVersion: api.kagent.dev/v1alpha3
