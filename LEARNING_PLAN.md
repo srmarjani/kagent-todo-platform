@@ -98,29 +98,29 @@ agentregistry: catalog of the MCP servers, skills (OCI images) and agents above
 Goal: a clean machine, pinned versions, secrets outside git, two repos you can push to.
 
 Do
-- [ ] Free memory (14 GB total, both old clusters use ~3 GB). Reversible stop:
+- [x] Free memory (14 GB total, both old clusters use ~3 GB). Reversible stop:
       ```bash
       docker stop $(docker ps -q --filter name=kagent-oss-demo) $(docker ps -q --filter name=multi-agent-demo)
       ```
       `docker start <names>` brings them back if you want the 0.10.4 reference later.
-- [ ] Install the kagent CLI at the chart version (**verified**: the docs require matching versions).
+- [x] Install the kagent CLI at the chart version (**verified**: the docs require matching versions).
       Read the script first, then:
       ```bash
       curl https://raw.githubusercontent.com/kagent-dev/kagent/refs/heads/main/scripts/get-kagent | bash -s -- --version v1.0.0-rc3
       ```
-- [ ] Install `gh` (GitHub CLI) and `yq`. Optional but they save time. `gh auth login`.
-- [ ] GitHub: create `kagent-todo-platform` (this folder) and `kagent-todo-app` (empty, public, with README).
+- [x] Install `gh` (GitHub CLI) and `yq`. Optional but they save time. `gh auth login`.
+- [x] GitHub: create `kagent-todo-platform` (this folder) and `kagent-todo-app` (empty, public, with README).
       Create a **fine-grained PAT** scoped to `kagent-todo-app` only: Contents RW, Pull requests RW, Issues RW,
       Metadata R. Put it in `.env` as `GITHUB_PAT`. Put your Anthropic key there as `ANTHROPIC_API_KEY`.
       `chmod 600 .env`.
-- [ ] `git init` this folder, add `.gitignore` (`.env`, `.tmp/`), `versions.env`, `notes/LOG.md`, push.
-- [ ] Write `cluster/kind-config.yaml`: one control-plane node, image `kindest/node:v1.37.0`,
+- [x] `git init` this folder, add `.gitignore` (`.env`, `.tmp/`), `versions.env`, `notes/LOG.md`, push.
+- [x] Write `cluster/kind-config.yaml`: one control-plane node, image `kindest/node:v1.37.0`,
       `extraPortMappings` `30080 -> 127.0.0.1:8080` (todo app NodePort, Phase 4) and
       `30121 -> 127.0.0.1:12121` (agentregistry, Phase 5).
       Model it on `~/Tutorial/webinar-demos/02-multi-agent-skills/scripts/01-setup-kind.sh`.
 
 Check
-- [ ] `kagent version` prints the pinned version. `free -g` shows at least 6 GB available.
+- [x] `kagent version` prints the pinned version. `free -g` shows at least 6 GB available.
       `git remote -v` shows both repos (platform here, app in its own clone).
 
 Find out
@@ -140,28 +140,28 @@ Read (in this order)
 - https://kagent.dev/docs/kagent/1.x/get-started/your-first-agent/
 
 Do
-- [ ] `kind create cluster --name todo-agents --config cluster/kind-config.yaml`.
-- [ ] Prerequisite (**verified**): `kubectl --context kind-todo-agents api-resources --api-group=certificates.k8s.io`
+- [x] `kind create cluster --name todo-agents --config cluster/kind-config.yaml`.
+- [x] Prerequisite (**verified**): `kubectl --context kind-todo-agents api-resources --api-group=certificates.k8s.io`
       lists `podcertificaterequests`.
-- [ ] `kagent/kagent-values.yaml`: `providers.default: anthropic`, `providers.anthropic.model: claude-haiku-5-5`,
+- [x] `kagent/kagent-values.yaml`: `providers.default: anthropic`, `providers.anthropic.model: claude-haiku-5-5`,
       `config.server.grpcReflection: true`. `kagent/kagent-config.yaml`: `install.kagent.valuesFiles: [kagent-values.yaml]`.
       Check the schema with `kagent config schema` before guessing keys (**find out**: the exact key for the default
       provider in the CLI config vs. Helm values; the docs show `providers.default` in Helm values and the webinar
       rewrite used `install.defaultModelProvider`).
-- [ ] Export the key from `.env` without echoing it, then install:
+- [x] Export the key from `.env` without echoing it, then install:
       ```bash
       set -a; source .env; set +a; kagent --config kagent/kagent-config.yaml install --namespace kagent
       ```
       Do **not** pre-create `kagent-anthropic`; the installer creates it (**verified**).
-- [ ] Inventory what the CLI did and write the list in the log: `helm list -A`, namespaces (`kagent`, `ate-system`),
+- [x] Inventory what the CLI did and write the list in the log: `helm list -A`, namespaces (`kagent`, `ate-system`),
       `kubectl get crds | grep -E 'kagent|ate'`, `kubectl get workerpool -n kagent`,
       `kubectl get modelconfig,remotemcpserver -n kagent`, pods in `ate-system` (`rustfs-bucket-init` should be `Completed`).
-- [ ] Apply your first Harness (`spec.kagent: {}`, `substrate.workerPoolRef.name: kagent-default`,
+- [x] Apply your first Harness (`spec.kagent: {}`, `substrate.workerPoolRef.name: kagent-default`,
       `snapshotPolicy.location: s3://ate-snapshots/kagent/`), an AgentTemplate `hello`
       (`modelConfig.name: default-model-config`, a one-line system prompt), and an Agent binding them
       (`spec.template.ref.name`, `spec.harnessRef.name`). Watch `kubectl get agent -n kagent -w` until `READY True`
       (first time about 1 min: golden snapshot, **verified**).
-- [ ] Prove there is no pod per agent: `kubectl get pods -A | grep hello` returns nothing.
+- [x] Prove there is no pod per agent: `kubectl get pods -A | grep hello` returns nothing.
 - [ ] Session + invoke:
       ```bash
       SESSION_ID=$(kagent agent session create --agent hello -o json | jq -r '.session.id')
