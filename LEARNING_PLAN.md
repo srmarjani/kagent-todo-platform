@@ -428,6 +428,31 @@ what it did well, what hurt, open **find out** items you could not answer, and a
 - agentregistry v0.4.0 Helm source and kagent 1.x Runtime support.
 - Claude harness: credential-free git push via EgressPolicy.
 
+## Deep dives for later (not needed to finish a phase)
+
+The goal of each phase is the main concepts. When a detail comes up, park it here in one line and move on.
+Read these after Phase 8, or when one blocks you.
+
+From Phase 1 (2026-11-10):
+- Revisions: `desiredRevision` vs `latestSuccessfulRevision` on the Agent, Session `preparedRevision`,
+  how a ModelConfig change makes a new revision, when old revisions are garbage-collected.
+- Session states: what `RUNTIME_STATE_READY` and `SUSPENDED` really mean; is there an idle timeout?
+- Actor lifecycle: checkpoint after every task (`fidelity: volumes`, ~0.1 s), wake-up on the next task (`/readyz`),
+  whether snapshots go to RustFS (`s3://ate-snapshots/kagent/`), what survives deleting the `kagent-default` pod.
+- Conversation store: SQLite on the Actor's `/data` (rc3 `go/adk/pkg/session/local.go`) vs. the A2A tasks kept
+  in the controller's Postgres.
+- Egress: model destinations inferred from the ModelConfig, credential injection at the gateway,
+  `EgressPolicy` + `spec.egressPolicyRefs` (`docs/architecture/egress-policies.md` in the kagent repo).
+- Naming: runtime app name `kagent__NS__my_first_agent`, ActorTemplate `<agent>-<revision[:12]>`, "atespace".
+- Identity: `--user-id` (default `admin@kagent.dev`) is a data partition; which identity the UI and Claude Code use.
+- CLI connection: the CLI talks to `localhost:8083`, so it needs a port-forward to `svc/kagent-controller`.
+- Cluster incident: node left with no Docker network (kind "old IPv4 but no current IPv4"), exit 137 vs 1,
+  the `127.0.0.1:12121` clash with the old `multi-agent-demo` cluster, controller/UI restart counts.
+- Upgrade path rc3 → 1.0.0 with Helm: CRDs, Substrate, kagent; `pg_dump` first; moving a CLI install to Helm
+  (https://kagent.dev/docs/kagent/latest/operations/upgrade/).
+- OpenRouter: `provider: OpenAI` + `openAI.baseUrl: https://openrouter.ai/api/v1`, model ID with a dot
+  (`anthropic/claude-haiku-5.5`), why the `/v1` path works.
+
 ## Facts verified on 2026-11-09 (sources)
 
 - kagent releases: https://github.com/kagent-dev/kagent/releases (latest tag v1.0.0-rc3, Nov 6)
