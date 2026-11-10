@@ -53,3 +53,42 @@
 - Add Anthropic credits, retry invoke on the same Session, then a follow-up message.
 - Which client shows the live Actor, and what an idle Session looks like.
 - UI :8082, A2A agent card path, Claude Code via /mcp, prompt change → old vs new Session.
+
+
+## 2026-11-10 — Phase 1, step 8 (Session + invoke)
+
+- No Anthropic credits; SRE gave an OpenRouter token. Key in `.env` as `OPENROUTER_API_KEY`,
+  Secret `kagent-openrouter` created from stdin (`printf '%s' ... | --from-file=KEY=/dev/stdin`), never in a flag or YAML.
+- New ModelConfig `openrouter-haiku-model-config`: provider `OpenAI`, `openAI.baseUrl: https://openrouter.ai/api/v1`,
+  model `anthropic/claude-haiku-5.5` (dot, not dash). `my-first-template` now points at it.
+- Mistake: `baseURL` instead of `baseUrl`. `kubectl apply --dry-run=server` caught it (strict decoding).
+  Lesson: server dry-run before apply.
+- Mistake: tried `session list --agent`, flag does not exist. Lesson: `--help` before guessing flags.
+- Old Session 01a1c23c… still called api.anthropic.com (credit error). New Session 01a1c46e… (revision b2ed2958…)
+  answered through OpenRouter and remembered its first message. Check passed.
+
+### Concepts
+- Revision: the compiled agent (template + model + harness). A Session is pinned to the revision it was created on
+  (`preparedRevision`). Template changes only reach new Sessions.
+- Actor: not a Kubernetes object. One gVisor sandbox per Session (`session-<id>`) inside the WorkerPool pod `kagent-default`.
+- After each task the Actor is checkpointed and stopped. The conversation lives on its disk (`/data`), not in memory,
+  and is restored on the next invoke.
+- Each invoke is one Task inside the Session.
+- Session state `READY` even while the Actor is stopped: READY means "can take work", not "running".
+
+### Incident: cluster down
+- Old clusters were running again; `todo-agents` node exited 137 and was left with no Docker network
+  (kind: "old IPv4 but no current IPv4", exit 1 on start).
+- Fix: stop old clusters, `docker network connect kind todo-agents-control-plane`, `docker start`.
+  All pods and the agent came back without re-applying anything. Who detached it: unknown.
+
+### Decisions
+- kagent v1.0.0 is out (same commit as rc4, small diff from rc3). Upgrade with Helm now that step 8 works.
+- Concepts first; details go to "Deep dives for later" in LEARNING_PLAN.md.
+
+- What surprised me: ...
+- What I still do not understand: ...
+
+### Open
+- Upgrade to 1.0.0.
+- UI :8082, A2A card, Claude Code via /mcp, prompt change.

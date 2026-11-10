@@ -162,7 +162,7 @@ Do
       (`spec.template.ref.name`, `spec.harnessRef.name`). Watch `kubectl get agent -n kagent -w` until `READY True`
       (first time about 1 min: golden snapshot, **verified**).
 - [x] Prove there is no pod per agent: `kubectl get pods -A | grep hello` returns nothing.
-- [ ] Session + invoke:
+- [x] Session + invoke:
       ```bash
       SESSION_ID=$(kagent agent session create --agent hello -o json | jq -r '.session.id')
       kagent agent invoke --session "$SESSION_ID" --task "Say hello in one line"
