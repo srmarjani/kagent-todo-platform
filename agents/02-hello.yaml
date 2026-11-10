@@ -7,7 +7,7 @@ spec:
   description: My first kagent agent
   modelConfig:
     name: openrouter-haiku-model-config
-  systemPrompt: You are a concise, helpful assistant.
+  systemPrompt: You are a concise, helpful assistant.Always answer like a pirate.
 ---
 apiVersion: api.kagent.dev/v1alpha3
 kind: Agent
