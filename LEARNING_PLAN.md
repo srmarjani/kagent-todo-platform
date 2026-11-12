@@ -375,7 +375,7 @@ deploys it into the cluster.
       (approval on apply).
 
 Check
-- [ ] Issues #2 to #6 closed by agent PRs you reviewed; app runs in the cluster; a log entry with tokens/cost per issue
+- [x] Issues #2 to #6 closed by agent PRs you reviewed; app runs in the cluster; a log entry with tokens/cost per issue
       and the A-vs-B comparison.
 
 Teach-back: explain to a colleague, without the docs, how a message from you reaches a specialist and comes back

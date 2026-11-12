@@ -273,3 +273,39 @@ Costs from the `ai-gateway` log (Sonnet $2/M in, $10/M out). No prompt caching (
 | rc3 | broke (MCP bindings at startup) | fine on 1.0.0 |
 | Use it for | routing a request to the right expert | orchestrating work that has an order |
 Real team: B for issues that span roles; A only as a front-door router.
+
+## 2026-11-12 — Phase 4.4: CI, deploy, break-and-fix
+
+- #5 (devops, direct chat): Dockerfile + GitHub Actions in PR #17. The PAT already had Workflows permission.
+  Local test: image builds (208 MB), container serves /healthz, UI and POST. First CI run passed in 48 s and
+  pushed `:594cf43…` and `:latest`. The package was public at once: a package pushed by a workflow with
+  GITHUB_TOKEN is linked to its repo and inherits the repo's visibility (the skills, pushed from my laptop,
+  started private).
+- #6 (devops): `k8s/` in PR #18 (namespace todo, Deployment on the exact SHA, readiness /healthz, DB on emptyDir,
+  NodePort 30080). Validated with server dry-run (namespace) + strict schema check, nodePort free. After merge
+  devops applied 3 manifests (each approved by me); the tool server log shows exactly 3 applies + 9 reads, all in
+  `-n todo`. Image pull 1 m 17 s. http://localhost:8080 serves the app; a todo added in the browser was stored.
+- Break-and-fix: I set `strategy: Recreate` + a typo image tag → ImagePullBackOff, app down. devops found it
+  from events, applied the git manifest (one approval), checked its own fix. App back.
+- Drift lesson: `kubectl apply` only manages fields the manifest lists. The git manifest has no `strategy`, so
+  `Recreate` survived and `kubectl diff` shows nothing. Write every field you care about into the manifest.
+
+| Task | Agent | PR | Model calls | Cost |
+|---|---|---|---|---|
+| #5 Dockerfile + CI | devops | #17 | 7 | ≈ $0.24 |
+| #6 k8s + deploy | devops | #18 | 17 | ≈ $0.72 |
+| Fix the outage | devops | — | 8 | ≈ $0.47 |
+
+Phase 4 total for the agents ≈ $3.5 (Sonnet for specialists; Haiku for leads was cents).
+
+### Findings
+- GitHub annotations: Node.js 20 actions are forced to Node 24, and `ubuntu-latest` moves to Ubuntu 26.
+  A small future issue: bump action versions.
+- Container runs as root; DB on emptyDir (data lost on restart). Future issues: non-root user, PVC, explicit
+  `strategy`, resources and a liveness probe.
+- The fix cost more than the feature (36k input tokens per call at the end): every investigation result
+  (events JSON, describe, logs) stays in the conversation and is resent each round.
+
+### Open
+- Teach-back answer (Pattern B round trip).
+- Phase 5 (agentregistry), Phase 6 (gateway timeouts, prompt caching, ACL), Phase 7, Phase 8.
