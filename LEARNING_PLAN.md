@@ -281,27 +281,27 @@ Read
   (remote server, PAT auth, toolsets)
 
 Do
-- [ ] Secret `github-pat` in `kagent` from `.env`. `agents/20-mcp-github.yaml`: `RemoteMCPServer github` with
+- [x] Secret `github-pat` in `kagent` from `.env`. `agents/20-mcp-github.yaml`: `RemoteMCPServer github` with
       `url: https://api.githubcopilot.com/mcp/`, `protocol: STREAMABLE_HTTP`, `headersFrom` `Authorization` from the Secret.
       **Find out**: whether the stored value must be `Bearer <pat>` or the raw token (GitHub docs say
       `Authorization: Bearer`; the webinar stored the raw token). Optionally add header
       `X-MCP-Toolsets: repos,issues,pull_requests` to shrink the tool list.
-- [ ] Verify discovery (**verified** commands): `kubectl get remotemcpserver -n kagent` shows ACCEPTED True;
+- [x] Verify discovery (**verified** commands): `kubectl get remotemcpserver -n kagent` shows ACCEPTED True;
       list `.status.discoveredTools`. Write down the tool names you will use.
-- [ ] Agent `repo-scout`: read-only binding (`get_file_contents`, `list_issues`, `search_code`, or whatever
+- [x] Agent `repo-scout`: read-only binding (`get_file_contents`, `list_issues`, `search_code`, or whatever
       discovery shows). Ask it to describe the empty `kagent-todo-app` repo and list issues.
-- [ ] Add a second binding on the same server with write tools (`create_branch`, `create_or_update_file`,
+- [x] Add a second binding on the same server with write tools (`create_branch`, `create_or_update_file`,
       `push_files`, `create_pull_request`) and `requireApproval: true`. Ask it to add a `CONTRIBUTING.md` via PR.
       The CLI will stop at "Input required" (**verified**); approve from the UI (port 8082).
       Reject once and read what the model does with the reason.
-- [ ] Preview of devops: Agent `cluster-reader` bound to the built-in `kagent-tool-server` with `k8s_get_resources`,
+- [x] Preview of devops: Agent `cluster-reader` bound to the built-in `kagent-tool-server` with `k8s_get_resources`,
       `k8s_describe_resource`, `k8s_get_pod_logs`, `k8s_get_events`. Ask about pods in `kagent`.
-- [ ] Fallback if the hosted GitHub MCP is unreachable from your network: run `ghcr.io/github/github-mcp-server`
-      in-cluster (Deployment + Service + RemoteMCPServer with the FQDN URL).
-      **Find out**: the flag for streamable-HTTP transport in the current image.
+- [x] ~~Fallback if the hosted GitHub MCP is unreachable from your network: run `ghcr.io/github/github-mcp-server`
+      in-cluster (Deployment + Service + RemoteMCPServer with the FQDN URL).~~ Not needed (2026-11-12): the hosted
+      server was reachable.
 
 Check
-- [ ] One PR opened by an agent after your approval; the PAT appears in exactly one Secret.
+- [x] One PR opened by an agent after your approval; the PAT appears in exactly one Secret.
 
 Teach-back: what the model sees for a ToolBinding; where approval is enforced (harness, not the MCP server);
 why the same server can appear in two bindings.
@@ -495,6 +495,16 @@ From Phase 1 (2026-11-10):
 - MCP `invoke_agent` from Claude Code: kagent created the Session and Task, but Claude Code rejected the reply as a
   "malformed task handle" and the Task was canceled after ~1 s. Retest after the 1.0.0 upgrade; if it still fails,
   report it upstream (Phase 8).
+
+From Phase 2–3 (2026-11-12):
+- Agent identity at the AI gateway: `ai-gateway` sees the egress pod as the client, not the agent. Per-agent limits
+  or billing need the identity carried along (ModelConfig / RemoteMCPServer `actorJwt`?).
+- Agent identity on GitHub: the PAT is yours, so agent PRs show up as `srmarjani`. A bot account or GitHub App would
+  make reviews and audit logs show the agent.
+- `kagent-tool-server` runs as ServiceAccount `kagent-tools` with a cluster-admin role (can delete pods, read all
+  Secrets). A tool binding limits what the model sees, not what the server can do; even `k8s_get_resources` can
+  read Secrets. Fix with RBAC: a read-only tool server without Secrets (Helm values or a second instance).
+- Logs: `atenet-egress` logs at debug level, so DNS lines rotate request lines out within hours.
 
 ## Facts verified on 2026-11-09 (sources)
 

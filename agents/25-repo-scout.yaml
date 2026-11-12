@@ -1,0 +1,49 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: repo-scout-template
+  namespace: kagent
+spec:
+  description: Reads a GitHub repo; changes it only through pull requests a human approves.
+  modelConfig:
+    name: openrouter-via-gateway
+  systemPrompt: |
+    You explore GitHub repositories and report what you find, briefly and factually.
+    You never commit to the default branch. To change a repo: create a branch, commit the file on it,
+    then open a pull request. Each write needs human approval; if a write is rejected, read the reason,
+    adjust, and explain what you changed.
+  tools:
+  - mcp:                           # binding 1: read, no approval
+      server:
+        kind: RemoteMCPServer      # apiGroup must be omitted (API server rejects it)
+        name: github
+      tools:
+      - get_file_contents
+      - list_branches
+      - list_commits
+      - list_issues
+      - issue_read
+      - list_pull_requests
+      - search_code
+  - mcp:                           # binding 2: same server, write, human approval
+      server:
+        kind: RemoteMCPServer
+        name: github
+      requireApproval: true
+      tools:
+      - create_branch
+      - create_or_update_file
+      - push_files
+      - create_pull_request
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata:
+  name: repo-scout
+  namespace: kagent
+spec:
+  template:
+    ref:
+      name: repo-scout-template
+  harnessRef:
+    name: my-first-harness

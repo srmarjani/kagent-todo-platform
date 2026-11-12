@@ -1,0 +1,17 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: RemoteMCPServer
+metadata:
+  name: github
+  namespace: kagent
+spec:
+  description: GitHub hosted MCP server (repos, issues, pull requests)
+  url: https://api.githubcopilot.com/mcp/
+  protocol: STREAMABLE_HTTP
+  headersFrom:
+  - name: Authorization            # the HTTP header kagent sends
+    valueFrom:
+      type: Secret
+      name: github-pat
+      key: Authorization           # "Bearer <pat>", never in this file
+  - name: X-MCP-Toolsets           # ask GitHub for only these tool groups
+    value: repos,issues,pull_requests

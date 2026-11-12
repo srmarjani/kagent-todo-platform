@@ -128,3 +128,35 @@
 ### Open
 - Teach-back for Phase 2.
 - Which kagent Helm values stop the chart from recreating the Anthropic key (Phase 8).
+
+## 2026-11-12 — Phase 3: tools, GitHub MCP, approvals
+
+- Secret `github-pat` (key `Authorization`, value `Bearer <pat>` from `.env` via stdin). kagent sends a header
+  exactly as stored, so the `Bearer ` prefix is needed (find-out answered). agentgateway adds it itself; kagent does not.
+- `RemoteMCPServer github` (`api.githubcopilot.com/mcp/`, header `X-MCP-Toolsets: repos,issues,pull_requests`):
+  discovery from the controller found 39 tools.
+- `repo-scout`, 7 read tools: correctly reported one README and 0 issues. 4 model calls (6.4k → 7.5k input tokens),
+  10 MCP calls. No EgressPolicy needed for GitHub (inferred from the RemoteMCPServer).
+- Mistake: `server.apiGroup` in a tool binding is rejected ("apiGroup must be omitted"). Server dry-run caught it.
+- Second binding on the same server: 4 write tools with `requireApproval: true`. In the UI I rejected the first
+  `create_branch` with "use branch name docs/contributing"; the model retried with that name. PR #1 (CONTRIBUTING.md)
+  opened after my approvals. PR author is me (`srmarjani`): the agent acts as the PAT owner.
+- Check: the PAT is in exactly 1 of 31 Secrets (`kagent/github-pat`).
+- `cluster-reader`, 4 read-only k8s tools: traced all `kagent` pod restarts to a PostgreSQL restart at 04:15 UTC
+  (exit 255, likely node stop). 8 kubectl calls, none on Secrets.
+
+### Concepts
+- Three layers: RemoteMCPServer (where the tools are) → binding in the AgentTemplate (which tools this agent gets,
+  with or without approval) → the model (sees only name, description and input schema of the bound tools).
+- Approval is enforced in the kagent harness inside the Actor: the loop pauses before the call leaves the sandbox.
+  A rejection goes back to the model as the tool result; GitHub never sees it.
+- One server in two bindings = free reads, gated writes. Tools in no binding (merge, delete) cannot even be requested.
+- Tools cost tokens on every call: ~4k extra input tokens for 7 GitHub tools. Each agent-loop round resends the
+  whole conversation, so input grows with every tool result.
+- A binding limits what the model sees, not what the server can do: `kagent-tool-server` is cluster-admin and
+  could read Secrets. Real limits need RBAC (Deep dives).
+
+### Open
+- Agent identity on GitHub (bot account / GitHub App) and at the AI gateway.
+- Read-only RBAC for `kagent-tool-server`.
+- Merge PR #1 (my call).

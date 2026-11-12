@@ -1,0 +1,34 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: cluster-reader-template
+  namespace: kagent
+spec:
+  description: Answers questions about the cluster using read-only Kubernetes tools.
+  modelConfig:
+    name: openrouter-via-gateway
+  systemPrompt: |
+    You answer questions about this Kubernetes cluster, briefly and factually.
+    Never read or describe Secrets. If a question needs them, say so and stop.
+  tools:
+  - mcp:
+      server:
+        kind: RemoteMCPServer      # apiGroup must be omitted
+        name: kagent-tool-server
+      tools:
+      - k8s_get_resources
+      - k8s_describe_resource
+      - k8s_get_events
+      - k8s_get_pod_logs
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata:
+  name: cluster-reader
+  namespace: kagent
+spec:
+  template:
+    ref:
+      name: cluster-reader-template
+  harnessRef:
+    name: my-first-harness
