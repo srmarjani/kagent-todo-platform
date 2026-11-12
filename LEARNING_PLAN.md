@@ -182,7 +182,7 @@ Do
       This is the revision model.
 
 Check
-- [ ] `kagent agent get hello` shows READY True; two sessions behave differently after the prompt change.
+- [x] `kagent agent get hello` shows READY True; two sessions behave differently after the prompt change.
 
 Teach-back (write in `notes/GLOSSARY.md`, two sentences each): Harness, AgentTemplate, Agent, Session, Actor,
 WorkerPool, golden snapshot, revision, ModelConfig.
@@ -215,12 +215,12 @@ Read
 - Old route-centric pattern, for comparison only: `~/Tutorial/webinar-demos/02-multi-agent-skills/gateway/*.yaml`.
 
 Do
-- [ ] Install Gateway API CRDs v1.6.3 (`kubectl apply --server-side --force-conflicts`), then
+- [x] Install Gateway API CRDs v1.6.3 (`kubectl apply --server-side --force-conflicts`), then
       `helm upgrade -i agentgateway-crds` and `agentgateway` v1.7.0 into `agentgateway-system` (**verified**
       commands on the install page). `kubectl api-resources --api-group=agentgateway.dev` must then list
       `AgentgatewayModel`. If `cr.agentgateway.dev` is unreachable from your network, try
       `oci://ghcr.io/agentgateway/charts/...` (the agent-factory demo did this).
-- [ ] `gateway/gateway.yaml`: Gateway `ai-gateway`, class `agentgateway`, HTTP :80, routes from all namespaces, and
+- [x] `gateway/gateway.yaml`: Gateway `ai-gateway`, class `agentgateway`, HTTP :80, routes from all namespaces, and
       `allowedRoutes.kinds` listing both `AgentgatewayModel` (group `agentgateway.dev`) and `HTTPRoute`. The model
       kind turns on the LLM paths (`/v1/chat/completions`, `/v1/models`, ...); `HTTPRoute` keeps the listener open
       for Phase 6. In kind the Service stays `<pending>` as LoadBalancer; that is fine for in-cluster use (or set
