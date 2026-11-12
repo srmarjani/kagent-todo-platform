@@ -338,3 +338,24 @@ MCP servers are resolved and checked on publish (a dangling reference is rejecte
 MCP-registry-compatible API (off by default) for AI clients. What it does not give here: deployment to
 kagent 1.x, and any access control; so today it is a read-mostly catalog that should be published from reviewed
 git by CI.
+
+## 2026-11-12 — Phase 6.1: GitHub MCP behind the gateway
+
+- `gateway/github-mcp.yaml`: `AgentgatewayBackend github-mcp` (`spec.mcp`, static target
+  `api.githubcopilot.com:443/mcp/`, StreamableHTTP, `policies.tls.sni`, `policies.auth.secretRef`) plus
+  `HTTPRoute /github-mcp` on `ai-gateway`, which sets `X-MCP-Toolsets` and `X-MCP-Features`.
+- Secret `github-mcp-secret` (key `Authorization`, raw PAT, from `.env` via stdin); the gateway adds `Bearer `.
+  The docs put the PAT inline in the HTTPRoute; not needed, `auth.secretRef` works on an MCP target.
+- Headers set by an HTTPRoute filter reach the MCP target: `tools/list` through the gateway gave 39 tools,
+  the same as direct.
+- `RemoteMCPServer github` now has only the URL `http://ai-gateway.agentgateway-system.svc.cluster.local/github-mcp`.
+  6 agents rebuilt (~3 min). No EgressPolicy: egress inferred from the URL, as for the ModelConfig in Phase 2.
+- Gateway log: one line per MCP call with `mcp.method.name`, `mcp.target`, `gen_ai.tool.name` (e.g. `list_issues`).
+  Discovery comes from `kagent-controller`, the Actor's calls from `atenet-egress`: still no agent identity.
+- Real MCP proxy: the client's session ID differs from the upstream one (long encoded ID; maybe signed with
+  `ai-gateway-session-key`, not verified).
+- Deleted `kagent/github-pat`: the PAT is in 1 of 33 Secrets. Old Sessions on earlier revisions lose GitHub.
+
+### Open
+- No client auth on the `ai-gateway` listener: any pod that reaches it can use the PAT and the OpenRouter key.
+- `registry/10-mcp-servers.yaml` still says the PAT is in `kagent/github-pat`.

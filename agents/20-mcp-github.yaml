@@ -4,16 +4,6 @@ metadata:
   name: github
   namespace: kagent
 spec:
-  description: GitHub hosted MCP server (repos, issues, pull requests)
-  url: https://api.githubcopilot.com/mcp/
+  description: GitHub hosted MCP server, through ai-gateway (PAT and toolsets live in the gateway)
+  url: http://ai-gateway.agentgateway-system.svc.cluster.local/github-mcp
   protocol: STREAMABLE_HTTP
-  headersFrom:
-  - name: Authorization            # the HTTP header kagent sends
-    valueFrom:
-      type: Secret
-      name: github-pat
-      key: Authorization           # "Bearer <pat>", never in this file
-  - name: X-MCP-Toolsets           # ask GitHub for only these tool groups
-    value: repos,issues,pull_requests
-  - name: X-MCP-Features           # write tools act directly; our requireApproval is the human gate
-    value: mcp_apps_disable_form_deferral

@@ -421,8 +421,9 @@ Check
 
 ## Phase 6 (optional): governance and traces through the gateway (4–6 h)
 
-- [ ] Put the GitHub MCP server behind agentgateway (`AgentgatewayBackend` of type MCP + HTTPRoute `/github-mcp`),
+- [x] Put the GitHub MCP server behind agentgateway (`AgentgatewayBackend` of type MCP + HTTPRoute `/github-mcp`),
       move the PAT into `agentgateway-system`, repoint the `RemoteMCPServer`. Now both credentials live in the gateway.
+      Done 2026-11-12: `gateway/github-mcp.yaml`, PAT in `github-mcp-secret` only (1 of 33 Secrets), no EgressPolicy.
 - [ ] Expose `team-lead` over A2A through the gateway with an `AgentgatewayPolicy` `apiKeyAuthentication`;
       call it with and without the key. (Pattern: `~/Tutorial/webinar-demos/youtube-series/03-virtual-mcp/readme.md`.)
 - [ ] Add a rate limit and a prompt guard for the OpenRouter model (inline `spec.policies` on the
