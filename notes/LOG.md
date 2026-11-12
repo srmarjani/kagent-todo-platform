@@ -239,3 +239,37 @@ Costs from the `ai-gateway` log (Sonnet $2/M in, $10/M out). No prompt caching (
 ### Open
 - Make agents create PRs again on 1.0.0 (switch off MCP Apps or the GitHub form). Needed before Pattern B.
 - Pattern B (call-and-return via `invoke_agent`), issues #5, #6, #8. Retest `invoke_agent` from Claude Code.
+
+## 2026-11-12 — Phase 4.3 Pattern B (call-and-return) and the A-vs-B comparison
+
+- GitHub PR form fix: header `X-MCP-Features: mcp_apps_disable_form_deferral` on the `github` RemoteMCPServer
+  (GitHub's server defers write tools to an MCP App form when the client supports UI; kagent 1.0.0 does).
+  Changing a shared MCP server gave new revisions to exactly the 5 agents that bind it.
+- Issue #8 closed (already built by #10/#11). New issue #13 "Clear completed todos" (backend then frontend).
+- `team-lead-orchestrator` (Haiku) with the controller's own MCP (`kagent-api`: list_agents, invoke_agent,
+  get_session, get_task). It started backend-dev, then frontend-dev, each in its own Session; stopped while I
+  approved in the specialist's Session; got PR #14 (backend, "Part of #13") and PR #15 (frontend, stacked on
+  the backend branch, "Closes #13"). Header fix confirmed: the agents created the PRs.
+- Tested: 48 tests pass, DELETE without/other status → 422, browser button clears only done todos.
+- Cost: lead 12 Haiku calls $0.01, specialists 17 Sonnet calls $0.83 → $0.84.
+
+### Findings
+- `invoke_agent` works from inside kagent on 1.0.0 (the rc3 "malformed task handle" was the Claude Code client).
+- `invoke_agent` blocks until the new Session's Actor accepts the turn (>30 s); `kagent-api` has `timeout: 30s`,
+  so the first calls timed out. Retries reused the same `message_id` → still only ONE Session per specialist.
+- No blocking "wait": `get_session` says "poll with 1 until the last turn is final". The "stop and tell the
+  user" rule kept polling to 3 calls.
+- My prompt said "small max_bytes"; the tool needs ≥ 4096. The lead corrected itself after one error.
+- Stacked PRs: merging #15 before #14's branch was deleted merged it into the backend branch, not master.
+  Fixed with PR #16. Order: merge base PR → delete its branch (GitHub retargets) → merge the next.
+
+### A vs B — which for a real team?
+| | A: hand-off (`subAgent`) | B: call-and-return (`invoke_agent`) |
+|---|---|---|
+| Runs in | one Actor, one Session | one Session per specialist |
+| Lead after delegating | gone (specialist keeps the chat) | keeps control, reads results |
+| Multi-step issues | one specialist does everything | backend → frontend, stacked PRs |
+| Approvals | in the same chat | in each specialist's Session |
+| rc3 | broke (MCP bindings at startup) | fine on 1.0.0 |
+| Use it for | routing a request to the right expert | orchestrating work that has an order |
+Real team: B for issues that span roles; A only as a front-door router.

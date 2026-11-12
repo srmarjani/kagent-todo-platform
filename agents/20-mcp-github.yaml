@@ -15,3 +15,5 @@ spec:
       key: Authorization           # "Bearer <pat>", never in this file
   - name: X-MCP-Toolsets           # ask GitHub for only these tool groups
     value: repos,issues,pull_requests
+  - name: X-MCP-Features           # write tools act directly; our requireApproval is the human gate
+    value: mcp_apps_disable_form_deferral

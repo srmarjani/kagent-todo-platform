@@ -354,7 +354,9 @@ deploys it into the cluster.
       three specialists. Send issue #7. Observe (**verified** behaviour): the turn is transferred to one specialist
       and stays there; the lead does not get the result back and cannot sequence backend, frontend, devops.
       Write down when this pattern is enough (routing) and when it is not (orchestration).
-- [ ] **Pattern B, call-and-return**: `21-mcp-kagent.yaml`: `RemoteMCPServer kagent-agents` with
+- [x] **Pattern B, call-and-return** (done 2026-11-12 as `agents/41-team-lead-orchestrator.yaml` with the
+      chart-installed `RemoteMCPServer kagent-api`, same URL; issue #13; approvals stayed on, in each specialist's
+      Session, with the lead stopping until "continue"). Original plan: `21-mcp-kagent.yaml`: `RemoteMCPServer kagent-agents` with
       `url: http://kagent-controller.kagent.svc.cluster.local:8083/mcp`, `STREAMABLE_HTTP`. New `team-lead` template
       binding `list_agents`, `invoke_agent`, `get_session`, with a prompt: split the issue into backend, frontend,
       devops tasks; call each specialist in order with the PR link of the previous step; report all PR links.
@@ -363,7 +365,7 @@ deploys it into the cluster.
       question. So for specialists called this way, remove `requireApproval` and let **PR review** be the human gate;
       keep `requireApproval` only on `devops` cluster writes, and run devops directly (not via the lead) or tell the
       lead to stop before deploy. **Find out**: does the lead's identity (`X-User-Id`) matter for `invoke_agent` permissions.
-- [ ] Compare A and B in the log: which one would you use for a real team, and why.
+- [x] Compare A and B in the log: which one would you use for a real team, and why.
 
 ### 4.4 Deploy (2 h)
 - [ ] Issue #5: `devops` writes Dockerfile + GitHub Actions; merge; confirm the image in ghcr.io (public).
@@ -513,9 +515,11 @@ From Phase 4 (2026-11-12):
 - Prompt caching: every loop round resends ~10–20k tokens of system prompt, tools and skill at full price
   (`cache_read=0`). Find out whether OpenRouter + the gateway can cache them, and what it saves.
 - MCP Apps: on 1.0.0 GitHub's MCP server answers `create_pull_request` with an interactive form for the user
-  instead of creating the PR. Find out how to turn that off (a GitHub MCP header, or MCP Apps off in kagent).
+  instead of creating the PR. Solved: header `X-MCP-Features: mcp_apps_disable_form_deferral` on the server.
 - Every controller upgrade gives all Agents new revisions (the controller compiles templates differently);
   plan for the golden-snapshot rebuild (~3 min for 7 agents on one worker).
+- `invoke_agent` blocks until the new Session's Actor accepts the turn (>30 s), but `kagent-api` (chart-managed)
+  has `timeout: 30s`. Find the Helm value for it, or bind a copy of the server with `timeout: 120s`.
 
 ## Facts verified on 2026-11-09 (sources)
 

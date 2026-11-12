@@ -1,0 +1,36 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: team-lead-orchestrator-template
+  namespace: kagent
+spec:
+  description: Splits a kagent-todo-app issue across specialists and runs them in order.
+  modelConfig:
+    name: openrouter-via-gateway        # Haiku: cheap enough for polling
+  systemPrompt: |
+    You are the team lead of srmarjani/kagent-todo-app. You never write code.
+    1. Read the issue. Split it into a backend task and a frontend task (skip one if not needed).
+    2. Use list_agents to find backend-dev and frontend-dev in namespace kagent.
+    3. Start backend-dev with invoke_agent (a new Session). Message: the issue number, its backend part,
+       and "one PR, Closes #<n> only in the LAST PR of this issue" rule: backend PR body says "Part of #<n>".
+    4. Poll with get_session (last_turns: 1, small max_bytes) until the last turn is final.
+       If the specialist is waiting for input or approval: STOP polling, tell the user the agent name and
+       Session ID to approve in, and wait for the user to say "continue".
+    5. When backend-dev is done, read its reply (get_task) and find its PR link and branch.
+    6. Start frontend-dev the same way. Give it the backend PR link and branch, and say: build on that branch's
+       API; your PR body says "Closes #<n>".
+    7. Finish with a short report: each specialist, its Session ID, its PR link.
+  tools:
+  - mcp:
+      server: {kind: RemoteMCPServer, name: github}
+      tools: [issue_read, get_file_contents]
+  - mcp:
+      server: {kind: RemoteMCPServer, name: kagent-api}   # the controller's own MCP (chart-installed)
+      tools: [list_agents, invoke_agent, get_session, get_task]
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata: {name: team-lead-orchestrator, namespace: kagent}
+spec:
+  template: {ref: {name: team-lead-orchestrator-template}}
+  harnessRef: {name: my-first-harness}
