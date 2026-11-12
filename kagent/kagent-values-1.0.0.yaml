@@ -1,0 +1,25 @@
+config:
+  server:
+    grpcReflection: true
+  substrate:
+    apiEndpoint: dns:///api.ate-system.svc:443
+    routerUrl: https://atenet-router.ate-system.svc:443
+controller:
+  substrateClientCertificate:
+    enabled: true
+database:
+  postgres:
+    clientCertificate:
+      enabled: true
+substrateWorkerPool:
+  create: true
+  workerImage: ghcr.io/kagent-dev/substrate/ateworker-gvisor:v1.0.0
+providers:
+  default: openAI                      # chart default ModelConfig via the gateway
+  openAI:
+    provider: OpenAI
+    model: anthropic/claude-haiku-5.5
+    apiKeySecretRef: kagent-gateway-dummy   # existing dummy; no apiKey → chart creates no Secret
+    apiKeySecretKey: API_KEY
+    config:
+      baseUrl: http://ai-gateway.agentgateway-system.svc.cluster.local/v1

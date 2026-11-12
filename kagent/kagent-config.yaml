@@ -1,4 +1,0 @@
-install:
-  defaultModelProvider: "Anthropic"
-  kagent:
-    valuesFiles: [kagent-values.yaml]

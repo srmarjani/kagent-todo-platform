@@ -15,13 +15,10 @@ spec:
     source:
       oci: ghcr.io/srmarjani/kagent-skills/backend-dev@sha256:bc78501d632159398401d59e78809052d43d167e9329a56aeddc48c641ba2c31
   tools:
-  - mcp:                           # read: free
+  - mcp:                           # read + create_branch: free (one binding = one MCP connection at startup in rc3)
       server: {kind: RemoteMCPServer, name: github}
       tools: [get_file_contents, list_branches, list_commits, issue_read, list_issues,
-              list_pull_requests, pull_request_read, search_code]
-  - mcp:                           # branch: free (harmless)
-      server: {kind: RemoteMCPServer, name: github}
-      tools: [create_branch]
+              list_pull_requests, pull_request_read, search_code, create_branch]
   - mcp:                           # anything that writes content: you approve
       server: {kind: RemoteMCPServer, name: github}
       requireApproval: true

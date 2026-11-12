@@ -1,0 +1,34 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: team-lead-handoff-template
+  namespace: kagent
+spec:
+  description: Routes a kagent-todo-app issue to the one specialist who should do it.
+  modelConfig:
+    name: openrouter-via-gateway        # Haiku: routing is cheap work
+  systemPrompt: |
+    You are the team lead of srmarjani/kagent-todo-app. Read the issue you are given,
+    decide which ONE specialist should do it, and hand it over with a short note on what matters.
+    You do not write code yourself.
+  tools:
+  - mcp:                                # read the issue and the README
+      server: {kind: RemoteMCPServer, name: github}
+      tools: [issue_read, get_file_contents, list_issues]
+  - subAgent:
+      name: backend_dev
+      description: Backend work in app/main.py, app/db.py and tests (FastAPI, SQLite, pytest).
+      templateRef: {name: backend-dev-template}
+  - subAgent:
+      name: frontend_dev
+      description: Frontend work in app/static/ (plain HTML and JavaScript).
+      templateRef: {name: frontend-dev-template}
+  # No devops sub-agent: rc3 connects every MCP toolset of the whole tree at Actor start, and the
+  # wake-up probe gives up after 30 s. 5 toolsets fit; 12 did not (kagent 1.0.0 defers MCP discovery).
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata: {name: team-lead-handoff, namespace: kagent}
+spec:
+  template: {ref: {name: team-lead-handoff-template}}
+  harnessRef: {name: my-first-harness}

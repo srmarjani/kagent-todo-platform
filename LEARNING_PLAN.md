@@ -19,6 +19,7 @@ and you read and approve each step first (rules in `CLAUDE.md`).
   (2026-11-10): stay on rc3 through all phases and upgrade in Phase 8. Upgrade earlier only if an rc3 bug blocks
   you. The likely ones: MCP tool discovery when a Session resumes (Phase 3, fixed in 1.0.0 by
   https://github.com/kagent-dev/kagent/pull/3560) and `invoke_agent` (Phase 4.3).
+  Upgraded early, on 2026-11-12 during 4.3: the rc3 MCP-at-startup bug blocked the team-lead tree.
 - Each step: Claude explains it and shows the file or command, you approve, Claude runs it and explains the result.
   You can still type any step yourself.
 
@@ -43,7 +44,7 @@ Core (0–5): about 30–40 h. With optional phases: about 45 h.
 | Component | Version | Notes |
 |---|---|---|
 | kind / node image | v0.33.0 / `kindest/node:v1.37.0` | already installed / pulled (**verified**) |
-| kagent CLI + charts | `v1.0.0-rc3` | `v1.0.0` is out; upgrade in Phase 8 (decision 2026-11-10) |
+| kagent CLI + charts | `v1.0.0` | upgraded from rc3 on 2026-11-12 (Helm), values in `kagent/kagent-values-1.0.0.yaml` |
 | Agent Substrate | `v1.0.0` (installed by the kagent CLI) | worker image `ateworker-gvisor:v1.0.0` |
 | kagent-tools | 0.3.0 | bundled `kagent-tool-server` |
 | Gateway API CRDs | v1.6.3 | standard channel (re-checked 2026-11-10) |
@@ -349,7 +350,7 @@ deploys it into the cluster.
 - [ ] Count tokens and cost per issue on the OpenRouter activity page; write it in the log.
 
 ### 4.3 Team lead, two patterns (3–4 h)
-- [ ] **Pattern A, hand-off**: `40-team-lead.yaml` with `tools: - subAgent: {name, description, templateRef}` for the
+- [x] **Pattern A, hand-off**: `40-team-lead.yaml` with `tools: - subAgent: {name, description, templateRef}` for the
       three specialists. Send issue #7. Observe (**verified** behaviour): the turn is transferred to one specialist
       and stays there; the lead does not get the result back and cannot sequence backend, frontend, devops.
       Write down when this pattern is enough (routing) and when it is not (orchestration).
@@ -449,11 +450,10 @@ Read: https://kagent.dev/docs/kagent/1.x/agents/agent-harness/ (Claude section)
 what it did well, what hurt, open **find out** items you could not answer, and anything worth reporting upstream
 (rc3 bugs you hit). Decide what you would build next.
 
-- [ ] Upgrade kagent `v1.0.0-rc3` → `v1.0.0` with Helm (CRDs, Substrate, kagent; `pg_dump` first; see the upgrade
-      line in Deep dives). Then retest `invoke_agent` from Claude Code and report it upstream if it still fails.
-      The Helm-owned `default-model-config` + Secret `kagent-anthropic` were deleted by hand in Phase 2 (2026-11-12);
-      set the kagent values so the upgrade does not recreate them with a real key (**find out** which values:
-      `helm get values kagent`, https://kagent.dev/docs/kagent/1.x/reference/helm/).
+- [x] Upgrade kagent `v1.0.0-rc3` → `v1.0.0` with Helm (CRDs, Substrate, kagent; `pg_dump` first; see the upgrade
+      line in Deep dives). Done early, 2026-11-12 (see LOG). The default ModelConfig now goes through the gateway
+      with the dummy key (`providers.default: openAI`, no `apiKey`), so the chart creates no key Secret.
+- [ ] Retest `invoke_agent` from Claude Code on 1.0.0 and report it upstream if it still fails.
 
 ---
 
@@ -512,6 +512,10 @@ From Phase 4 (2026-11-12):
   the Gateway directly gives no timeout. Try path-scoped models on an HTTPRoute + `AgentgatewayPolicy` timeouts.
 - Prompt caching: every loop round resends ~10–20k tokens of system prompt, tools and skill at full price
   (`cache_read=0`). Find out whether OpenRouter + the gateway can cache them, and what it saves.
+- MCP Apps: on 1.0.0 GitHub's MCP server answers `create_pull_request` with an interactive form for the user
+  instead of creating the PR. Find out how to turn that off (a GitHub MCP header, or MCP Apps off in kagent).
+- Every controller upgrade gives all Agents new revisions (the controller compiles templates differently);
+  plan for the golden-snapshot rebuild (~3 min for 7 agents on one worker).
 
 ## Facts verified on 2026-11-09 (sources)
 

@@ -199,3 +199,43 @@ Costs from the `ai-gateway` log (Sonnet $2/M in, $10/M out). No prompt caching (
 ### Open
 - 4.3 team lead; issues #5–#8.
 - Gateway timeout + retry (Phase 6), prompt caching (Phase 6).
+
+## 2026-11-12 — Phase 4.3 Pattern A, and the kagent 1.0.0 upgrade
+
+### Pattern A: hand-off team lead (`team-lead-handoff`)
+- `subAgent` bindings point at the specialists' templates; kagent compiles the lead + specialists into ONE
+  Actor in the lead's Session. To the lead's model a sub-agent is just a tool; the hand-off is one tool call,
+  `transfer_to_agent`, and the specialist keeps the conversation.
+- `subAgent.agentRef` (a sub-agent with its own Session) is deferred in 1.0 (delegation page note). Pattern B
+  builds that by hand via the controller's MCP tools instead.
+- Issue #7: the lead routed it to `backend_dev`, which did BOTH halves (API validation + UI overdue marking).
+  Routing works; splitting work across specialists does not. PR #12 (opened by hand, see below): 40 tests pass,
+  overdue marking correct in the browser.
+
+### rc3 blocker → upgrade
+- rc3 connects every MCP binding when an Actor starts or resumes; the Substrate wake-up probe gives up after 30 s.
+  The lead tree had 12 bindings (≈36 s): "input was not accepted; retry after the session becomes available".
+- Trimmed to 5 bindings (merged read + create_branch per specialist, dropped devops from the lead): start 11 s.
+  But resume after an approval once took 20 s for ONE GitHub connection → probe missed again → approval loop.
+- Fix = kagent 1.0.0 (#3560, MCP discovery deferred to first use). After the upgrade the Actor is ready at once.
+
+### Upgrade rc3 → 1.0.0 (Helm)
+- Backup first: `pg_dump` inside the Postgres pod (no password), 41 tables, kagent + substrate schemas.
+- Substrate was already 1.0.0 with the `GoldenEgressPolicy` gate: no Substrate step needed.
+- `helm upgrade kagent-crds` → `helm upgrade kagent -f kagent/kagent-values-1.0.0.yaml`. The 1.0.0 controller
+  ran DB migration 2 → 3 on start. All 7 Agents got NEW revisions (the new controller compiles differently) and
+  were Ready ~3 min later, after golden snapshots were rebuilt.
+- The Anthropic key was still in the Helm release values history (`providers.anthropic.apiKey`). New values:
+  default model = gateway + dummy key, no `apiKey` (chart creates no Secret then). Deleted the old release
+  revision Secret; a scan of all 31 Secrets now finds the Anthropic key nowhere, the OpenRouter key only in
+  the gateway, the PAT only in `kagent/github-pat`.
+- `--history-max 1` still keeps the previous revision; delete it by hand if it holds secrets.
+- CLI: `get-kagent --version v1.0.0` needs sudo; the password prompt timed out once.
+
+### New on 1.0.0: GitHub MCP shows a PR form
+- kagent 1.0.0 advertises MCP Apps; GitHub's server then answers `create_pull_request` with an interactive form
+  for the user instead of creating the PR. The model retried, I approved again: a loop. Opened PR #12 by hand.
+
+### Open
+- Make agents create PRs again on 1.0.0 (switch off MCP Apps or the GitHub form). Needed before Pattern B.
+- Pattern B (call-and-return via `invoke_agent`), issues #5, #6, #8. Retest `invoke_agent` from Claude Code.
