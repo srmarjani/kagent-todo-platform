@@ -1,0 +1,43 @@
+# MCP servers the agents use. Remote = already running; the registry only catalogs them.
+apiVersion: ar.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: github
+  tag: v1
+spec:
+  title: GitHub (hosted MCP)
+  description: GitHub's hosted MCP server, toolsets repos/issues/pull_requests. Needs a PAT; in kagent it comes from Secret kagent/github-pat.
+  remote:
+    type: streamable-http
+    url: https://api.githubcopilot.com/mcp/
+    headers:
+      - name: Authorization
+        value: Bearer {token}            # placeholder, never a real token here
+      - name: X-MCP-Toolsets
+        value: repos,issues,pull_requests
+      - name: X-MCP-Features
+        value: mcp_apps_disable_form_deferral
+---
+apiVersion: ar.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: kagent-tools
+  tag: v1
+spec:
+  title: kagent tool server (Kubernetes tools)
+  description: Built-in kagent-tool-server (k8s_* tools). Runs as cluster-admin; bind read tools freely, gate writes.
+  remote:
+    type: streamable-http
+    url: http://kagent-tools.kagent.svc.cluster.local:8084/mcp
+---
+apiVersion: ar.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: kagent-agents
+  tag: v1
+spec:
+  title: kagent controller MCP (agents as tools)
+  description: The controller's own MCP (list_agents, invoke_agent, get_session). Used by the Pattern B team lead.
+  remote:
+    type: streamable-http
+    url: http://kagent-controller.kagent.svc.cluster.local:8083/mcp

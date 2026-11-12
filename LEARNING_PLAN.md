@@ -400,21 +400,21 @@ Read
   `~/Tutorial/webinar-demos/02-multi-agent-skills/scripts/02-install-stack.sh` (Helm flags, pgvector Postgres, NodePort 30121)
 
 Do
-- [ ] Install `arctl` (read the script first):
+- [x] Install `arctl` (read the script first):
       ```bash
       curl -fsSL https://raw.githubusercontent.com/agentregistry-dev/agentregistry/main/scripts/get-arctl | bash
       ```
-- [ ] Install agentregistry v0.4.0 on the cluster with Helm (**find out**: OCI chart URL, or clone the repo and install
+- [x] Install agentregistry v0.4.0 on the cluster with Helm (**find out**: OCI chart URL, or clone the repo and install
       `charts/agentregistry`; v0.4.0 needs a fresh database and `ar.dev/v1alpha1` manifests, **verified** not compatible
       with 0.3.x). Use a pgvector Postgres image, anonymous auth on, NodePort 30121 so http://localhost:12121 works.
-- [ ] `registry/` manifests: the GitHub MCP server, your three skills (OCI refs), your four agents.
+- [x] `registry/` manifests: the GitHub MCP server, your three skills (OCI refs), your four agents.
       `arctl apply -f registry/`. Browse the UI, search from `arctl`.
-- [ ] **Find out** and document: can a v0.4.0 `Runtime` deploy an agent to kagent **1.x**? (0.3.3 used the 0.x REST API
+- [x] **Find out** and document: can a v0.4.0 `Runtime` deploy an agent to kagent **1.x**? (0.3.3 used the 0.x REST API
       that 1.x removed, **verified**.) If not, the registry is a catalog here; write what would need to exist for it to deploy.
-- [ ] Turn anonymous auth off; see what breaks for `arctl`.
+- [x] Turn anonymous auth off; see what breaks for `arctl`. Nothing to turn off in v0.4.0 (2026-11-12): no authn configured, `PublicAuthzProvider` allows all, tokens are ignored, anonymous writes work; OIDC is open issue #712.
 
 Check
-- [ ] Search finds your MCP server, skills and agents; you can state in one paragraph what the registry gives you
+- [x] Search finds your MCP server, skills and agents; you can state in one paragraph what the registry gives you
       that this git repo does not.
 
 ---

@@ -309,3 +309,32 @@ Phase 4 total for the agents ≈ $3.5 (Sonnet for specialists; Haiku for leads w
 ### Open
 - Teach-back answer (Pattern B round trip).
 - Phase 5 (agentregistry), Phase 6 (gateway timeouts, prompt caching, ACL), Phase 7, Phase 8.
+
+## 2026-11-12 — Phase 5: agentregistry as the catalog
+
+- agentregistry v0.4.0 is still the newest release. Chart via OCI
+  (`oci://ghcr.io/agentregistry-dev/agentregistry/charts/agentregistry --version 0.4.0`), namespace
+  `agentregistry`, bundled Postgres 18 on a 5 Gi PVC (no pgvector needed), NodePort 30121 → http://localhost:12121.
+  `arctl` v0.4.0 from the release asset, checksum verified, in `~/.local/bin`.
+- `registry/` (ar.dev/v1alpha1): 3 remote MCP servers (github with placeholder token, kagent-tools, kagent-agents),
+  3 skills (source = git at commit 9507b4c; the registry has no OCI source for skills, so the digest is in the
+  description), 4 agents (backenddev, frontenddev, devops, teamlead) referencing skills and MCP servers.
+- Gotchas: agent names can't contain hyphens (they become Python identifiers); agents with skills need
+  `compatibleHarnesses` (`{type: kagent}`); `--dry-run` can't resolve references to entries in the same run;
+  `arctl get` defaults to tag `latest`, so `--tag v1` is needed; the CLI has no free-text search, the UI does
+  (and matches descriptions).
+- Deploy to kagent 1.x: no. The kagent runtime adapter (even on main) calls kagent 0.x REST (`/api/agents`,
+  `/api/toolservers`); kagent 1.x answers every unknown path with an empty 200, so it would not even fail loudly.
+  Here the registry is a catalog only.
+- Auth: nothing to turn off. No authn configured, `PublicAuthzProvider` allows every action, tokens are ignored,
+  anonymous writes work. Same pattern as kagent: hooks shipped, allow-all default. OIDC is open issue #712.
+
+### Check: what the registry gives that this git repo does not
+Git holds the files; the registry holds a searchable catalog of what exists and how it fits together. Anyone can
+find "which MCP servers and skills can I use, and which agents already use them" in a web UI with search over
+names and descriptions, without knowing this repo, YAML layout or kubectl. Entries are versioned with tags
+(`v1`, `stable`) so teams can promote and pin versions side by side, and references between agents, skills and
+MCP servers are resolved and checked on publish (a dangling reference is rejected). It can also expose an
+MCP-registry-compatible API (off by default) for AI clients. What it does not give here: deployment to
+kagent 1.x, and any access control; so today it is a read-mostly catalog that should be published from reviewed
+git by CI.

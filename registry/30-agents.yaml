@@ -1,0 +1,79 @@
+# Agents: names must be DNS-1123 AND have no hyphens (they become Python identifiers), so "backenddev" etc.
+# No image: these run on kagent; the registry links to their kagent YAML and the catalog entries they use.
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: backenddev
+  tag: v1
+spec:
+  title: backend-dev
+  description: Backend developer for kagent-todo-app. One issue per PR; writes gated by approval. kagent Agent kagent/backend-dev.
+  source:
+    repository:
+      url: https://github.com/srmarjani/kagent-todo-platform
+      subfolder: agents
+    protocol: A2A
+  compatibleHarnesses:
+    - {type: kagent}                 # runs on kagent's own harness (Harness spec.kagent)
+  skills:
+    - {kind: Skill, name: backend-dev, tag: v1}
+  mcpServers:
+    - {kind: MCPServer, name: github, tag: v1}
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: frontenddev
+  tag: v1
+spec:
+  title: frontend-dev
+  description: Frontend developer for kagent-todo-app. One issue per PR; writes gated by approval. kagent Agent kagent/frontend-dev.
+  source:
+    repository:
+      url: https://github.com/srmarjani/kagent-todo-platform
+      subfolder: agents
+    protocol: A2A
+  compatibleHarnesses:
+    - {type: kagent}                 # runs on kagent's own harness (Harness spec.kagent)
+  skills:
+    - {kind: Skill, name: frontend-dev, tag: v1}
+  mcpServers:
+    - {kind: MCPServer, name: github, tag: v1}
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: devops
+  tag: v1
+spec:
+  title: devops
+  description: Builds, ships and deploys kagent-todo-app; cluster writes only in namespace todo, gated by approval. kagent Agent kagent/devops.
+  source:
+    repository:
+      url: https://github.com/srmarjani/kagent-todo-platform
+      subfolder: agents
+    protocol: A2A
+  compatibleHarnesses:
+    - {type: kagent}                 # runs on kagent's own harness (Harness spec.kagent)
+  skills:
+    - {kind: Skill, name: devops, tag: v1}
+  mcpServers:
+    - {kind: MCPServer, name: github, tag: v1}
+    - {kind: MCPServer, name: kagent-tools, tag: v1}
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: teamlead
+  tag: v1
+spec:
+  title: team-lead-orchestrator
+  description: Pattern B lead (Haiku). Splits an issue and runs backend-dev then frontend-dev via invoke_agent. kagent Agent kagent/team-lead-orchestrator.
+  source:
+    repository:
+      url: https://github.com/srmarjani/kagent-todo-platform
+      subfolder: agents
+    protocol: A2A
+  mcpServers:
+    - {kind: MCPServer, name: github, tag: v1}
+    - {kind: MCPServer, name: kagent-agents, tag: v1}

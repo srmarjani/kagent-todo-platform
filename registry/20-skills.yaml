@@ -1,0 +1,42 @@
+# Skills: source is git (the registry has no OCI source for skills). kagent pulls the OCI digest in the description.
+apiVersion: ar.dev/v1alpha1
+kind: Skill
+metadata:
+  name: backend-dev
+  tag: v1
+spec:
+  title: Backend dev (FastAPI, SQLite, pytest)
+  description: "Playbook for backend issues in kagent-todo-app. kagent image: ghcr.io/srmarjani/kagent-skills/backend-dev@sha256:bc78501d632159398401d59e78809052d43d167e9329a56aeddc48c641ba2c31"
+  source:
+    repository:
+      url: https://github.com/srmarjani/kagent-todo-platform
+      commit: 9507b4ccb2b939d4fd57b8979d569d85c5eb0317
+      subfolder: skills/backend-dev
+---
+apiVersion: ar.dev/v1alpha1
+kind: Skill
+metadata:
+  name: frontend-dev
+  tag: v1
+spec:
+  title: Frontend dev (plain HTML and JavaScript)
+  description: "Playbook for frontend issues in kagent-todo-app. kagent image: ghcr.io/srmarjani/kagent-skills/frontend-dev@sha256:6bad4edf0270e7441c1cd707f5c8c89dbb2b69e5777717942697a456bdc12b52"
+  source:
+    repository:
+      url: https://github.com/srmarjani/kagent-todo-platform
+      commit: 9507b4ccb2b939d4fd57b8979d569d85c5eb0317
+      subfolder: skills/frontend-dev
+---
+apiVersion: ar.dev/v1alpha1
+kind: Skill
+metadata:
+  name: devops
+  tag: v1
+spec:
+  title: DevOps (Docker, GitHub Actions, Kubernetes)
+  description: "Playbook for build, ship and deploy. kagent image: ghcr.io/srmarjani/kagent-skills/devops@sha256:86e28db04264d9cbfeee2288092cca384c722666bef849abbf2591f2d9636d3e"
+  source:
+    repository:
+      url: https://github.com/srmarjani/kagent-todo-platform
+      commit: 9507b4ccb2b939d4fd57b8979d569d85c5eb0317
+      subfolder: skills/devops
