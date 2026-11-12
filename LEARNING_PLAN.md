@@ -368,10 +368,10 @@ deploys it into the cluster.
 - [x] Compare A and B in the log: which one would you use for a real team, and why.
 
 ### 4.4 Deploy (2 h)
-- [ ] Issue #5: `devops` writes Dockerfile + GitHub Actions; merge; confirm the image in ghcr.io (public).
-- [ ] Issue #6: `devops` writes `k8s/` and applies to namespace `todo` after your approval.
+- [x] Issue #5: `devops` writes Dockerfile + GitHub Actions; merge; confirm the image in ghcr.io (public).
+- [x] Issue #6: `devops` writes `k8s/` and applies to namespace `todo` after your approval.
       Open http://localhost:8080 (kind maps 30080). Add a todo. Celebrate.
-- [ ] Break it on purpose: scale the Deployment to 0 or set a wrong image tag, ask `devops` to diagnose and fix
+- [x] Break it on purpose: scale the Deployment to 0 or set a wrong image tag, ask `devops` to diagnose and fix
       (approval on apply).
 
 Check
@@ -526,6 +526,20 @@ From Phase 4 (2026-11-12):
   `master`, with ungated specialist variants for the lead (e.g. `backend-dev-team`). `devops` keeps its
   cluster-write approval and runs directly. Find out: can `invoke_agent` send an approval into a waiting Session
   (and why not to use it).
+
+ACL and channels, for company use (checked 2026-11-12):
+- Authentication exists: `config.server.auth.mode: trusted-proxy` + bundled oauth2-proxy (OIDC SSO), and
+  Kubernetes ServiceAccount tokens (`config.server.auth.serviceAccount`). This cluster runs `insecure`.
+- Per-agent authorization: EP-1270 (`design/EP-1270-scoped-authorization.md`) is implemented, so every API
+  asks an authorizer per namespace/name. But the OSS default allows everything, roles/policies are a non-goal, and
+  issue #1270 "User RBAC Authorization" was closed as not_planned (2026-11-10). An ACL needs your own authorizer
+  (Go build embedding the controller via `app.Options`) and/or agentgateway `jwtAuthentication` + `authorization`
+  rules on the A2A paths `/agents/{namespace}/{name}`. Find out: can the UI's `/api` calls be filtered per agent.
+- With auth on, Pattern B may break: issue #3642 says actors may only get their own Agent and Session on 1.0.0;
+  declared agent-to-agent delegation is still open. Our Pattern B worked on `insecure`.
+- Slack/GitLab: build a small bridge on A2A + push notifications (webhook on "input required" and "done"),
+  with approve/reject in the thread. `kagent-dev/a2a-slack-template` exists but is from Aug 2025 (kagent 0.x);
+  nothing for GitLab.
 
 ## Facts verified on 2026-11-09 (sources)
 
