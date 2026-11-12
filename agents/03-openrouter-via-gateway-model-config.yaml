@@ -1,0 +1,13 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: ModelConfig
+metadata:
+  name: openrouter-via-gateway
+  namespace: kagent
+spec:
+  apiKeySecret: kagent-gateway-dummy        # fake key; the gateway swaps in the real one
+  apiKeySecretKey: API_KEY
+  model: anthropic/claude-haiku-5.5         # must match the AgentgatewayModel's match.model
+  provider: OpenAI                          # same client as before
+  stream: true
+  openAI:
+    baseUrl: http://ai-gateway.agentgateway-system.svc.cluster.local/v1   # was https://openrouter.ai/api/v1

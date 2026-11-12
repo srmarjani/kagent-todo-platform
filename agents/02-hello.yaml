@@ -6,7 +6,7 @@ metadata:
 spec:
   description: My first kagent agent
   modelConfig:
-    name: openrouter-haiku-model-config
+    name: openrouter-via-gateway
   systemPrompt: You are a concise, helpful assistant.Always answer like a pirate.
 ---
 apiVersion: api.kagent.dev/v1alpha3

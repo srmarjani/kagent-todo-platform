@@ -92,3 +92,39 @@
 ### Open
 - Upgrade to 1.0.0.
 - UI :8082, A2A card, Claude Code via /mcp, prompt change.
+
+## 2026-11-10 / 2026-11-12 — Phase 2: agentgateway in front of the LLM
+
+- Plan switched to agentgateway v1.7.0 (still the newest release) with the model-centric `AgentgatewayModel`
+  and its built-in `Openrouter` provider, instead of `AgentgatewayBackend` + `HTTPRoute`.
+- Installed Gateway API CRDs v1.6.3 (already present, probably from the Substrate install) and agentgateway
+  v1.7.0 with Helm. Helm's flag is `--kube-context`, not `--context`.
+- Gateway `ai-gateway`: the listener must list `AgentgatewayModel` in `allowedRoutes.kinds`, otherwise an HTTP
+  listener only accepts `HTTPRoute`. The controller starts a proxy Deployment and Service with the Gateway's name.
+- Secret `openrouter-secret` (key `Authorization`, raw key) in `agentgateway-system`, from `.env` via stdin.
+  v1.7.0 adds `Bearer ` itself and strips one if present (`kubectl explain agentgatewaymodel.spec.policies.auth`).
+- `AgentgatewayModel` `openrouter-haiku`: `match.model: anthropic/claude-haiku-5.5`. Test via port-forward:
+  `/v1/models` lists only Haiku; a chat request with no key in it worked; Sonnet got 404 `model_not_found`.
+- New ModelConfig `openrouter-via-gateway` (provider OpenAI, `baseUrl` = gateway `/v1`, dummy key Secret).
+  Template switch made revision 3ba40435…; new Session 01a1ceb2… answered like a pirate.
+- Deleted the Phase 1 direct ModelConfig + `kagent-openrouter`, and the Helm-owned `default-model-config` +
+  `kagent-anthropic` (Helm may recreate those on upgrade, noted in Phase 8). Check passed: `kagent` has only
+  the dummy key.
+
+### Concepts
+- Two gateways: `atenet-egress` decides where a sandbox may connect; `ai-gateway` decides which model, with
+  which key, and logs tokens per request. Path: Actor → atenet-egress → ai-gateway → openrouter.ai.
+- No EgressPolicy needed: kagent inferred the in-cluster gateway from the ModelConfig (find-out answered).
+- In Phase 1 the sandbox never held the key either: the egress gateway injected it from the Secret. An old
+  Session (revision a5605edb…) now fails with 403 "atespace kagent is not permitted to resolve secret".
+- What Phase 2 adds: one owner for LLM keys, a model allow-list, LLM-aware logs, one place for budgets later.
+- `ai-gateway` sees the egress pod as the client, not the agent: per-agent limits need the identity carried
+  along (ModelConfig `actorJwt`? Phase 6).
+- A "hi" costs ~2,200 input tokens: system prompt, tools and framing go with every call.
+
+### Decisions
+- From 2026-11-12 Claude writes files and runs commands; I read and approve each step (CLAUDE.md).
+
+### Open
+- Teach-back for Phase 2.
+- Which kagent Helm values stop the chart from recreating the Anthropic key (Phase 8).

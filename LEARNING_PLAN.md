@@ -5,8 +5,8 @@ Written 2026-11-09 for Razi. Replaces `~/Tutorial/kagent_tutorial/LEARNING_PLAN.
 **The idea.** One kind cluster. kagent 1.x runs four agents: `team-lead`, `backend-dev`, `frontend-dev`, `devops`.
 They build a small FastAPI + HTML/JS todo app in a GitHub repo through pull requests you review, and deploy it into
 the same cluster. agentgateway sits between the agents and the LLM (Anthropic models through OpenRouter).
-agentregistry catalogs the tools, skills and agents. You type every command and write every file. Claude explains,
-reviews and reads; it never applies (rules in `CLAUDE.md`).
+agentregistry catalogs the tools, skills and agents. Since 2026-11-12 Claude writes the files and runs the commands,
+and you read and approve each step first (rules in `CLAUDE.md`).
 
 ## How to use this plan
 
@@ -19,7 +19,8 @@ reviews and reads; it never applies (rules in `CLAUDE.md`).
   (2026-11-10): stay on rc3 through all phases and upgrade in Phase 8. Upgrade earlier only if an rc3 bug blocks
   you. The likely ones: MCP tool discovery when a Session resumes (Phase 3, fixed in 1.0.0 by
   https://github.com/kagent-dev/kagent/pull/3560) and `invoke_agent` (Phase 4.3).
-- Ask Claude for: concepts, a review of YAML you wrote, help reading an error. Not for building.
+- Each step: Claude explains it and shows the file or command, you approve, Claude runs it and explains the result.
+  You can still type any step yourself.
 
 ## Effort (part time, hands-on hours)
 
@@ -225,30 +226,30 @@ Do
       kind turns on the LLM paths (`/v1/chat/completions`, `/v1/models`, ...); `HTTPRoute` keeps the listener open
       for Phase 6. In kind the Service stays `<pending>` as LoadBalancer; that is fine for in-cluster use (or set
       ClusterIP via `AgentgatewayParameters`, see `~/Tutorial/agent-factory-demo/platform/gateway/gateway.yaml`).
-- [ ] Secret `openrouter-secret` in `agentgateway-system` with the **raw** OpenRouter key under the key name
+- [x] Secret `openrouter-secret` in `agentgateway-system` with the **raw** OpenRouter key under the key name
       `Authorization` (no `Bearer`; the gateway adds it, **verified** in the LLM quickstart). Create it from `.env`
       through stdin, the same way you created `kagent-openrouter` in Phase 1.
-- [ ] `gateway/openrouter-model.yaml`: one `AgentgatewayModel` in `agentgateway-system` with `parentRefs` (the
+- [x] `gateway/openrouter-model.yaml`: one `AgentgatewayModel` in `agentgateway-system` with `parentRefs` (the
       Gateway, section `http`), `provider: Openrouter`, `match.model: anthropic/claude-haiku-5.5` and
       `policies.auth.secretRef` (`kubectl explain agentgatewaymodel.spec`). The model name goes in `match.model`
       because `metadata.name` cannot contain `/`. Check that `status.parents` says Accepted, then test through a
       port-forward of the proxy: `GET /v1/models`, then one `POST /v1/chat/completions` with `max_tokens: 16`.
-- [ ] New ModelConfig `openrouter-via-gateway` in `kagent`: `provider: OpenAI`,
+- [x] New ModelConfig `openrouter-via-gateway` in `kagent`: `provider: OpenAI`,
       `openAI.baseUrl: http://ai-gateway.agentgateway-system.svc.cluster.local/v1`, the same model
       `anthropic/claude-haiku-5.5`, and a dummy key Secret (the gateway holds the real one). Point
       `my-first-template` at it, wait for the new revision, new session, invoke. Confirm the request in the gateway
       proxy logs.
-- [ ] When the new session works, delete the direct ModelConfig `openrouter-haiku-model-config` and the Secret
+- [x] When the new session works, delete the direct ModelConfig `openrouter-haiku-model-config` and the Secret
       `kagent-openrouter`. **Find out**: what happens to an old Session pinned to the revision that used them?
-- [ ] **Find out**: did the egress gateway let the agent reach the in-cluster gateway without an `EgressPolicy`?
+- [x] **Find out**: did the egress gateway let the agent reach the in-cluster gateway without an `EgressPolicy`?
       (Model-provider destinations are inferred, **verified**, but the docs show no in-cluster example.) If not,
       write `agents/50-egress.yaml` with the gateway origin and add `egressPolicyRefs` to the Agent.
       Debug with the `EgressPoliciesApplied` condition and `kubectl logs -n ate-system deploy/atenet-egress`.
 
 Check
-- [ ] `kubectl get secret -n kagent` shows the dummy key only; the real key exists only in `agentgateway-system`.
+- [x] `kubectl get secret -n kagent` shows the dummy key only; the real key exists only in `agentgateway-system`.
       A `hello` turn appears in the gateway logs.
-- [ ] A request for a model you did not declare (for example a Sonnet ID) is refused by the gateway with
+- [x] A request for a model you did not declare (for example a Sonnet ID) is refused by the gateway with
       `model_not_found` and never reaches OpenRouter. That is your first cost control.
 
 Teach-back: draw the request path Session, egress gateway, ai-gateway, OpenRouter, and name which component holds
@@ -256,7 +257,8 @@ which credential. Then say in one sentence when you would use `AgentgatewayModel
 `AgentgatewayBackend` + `HTTPRoute`.
 
 Pitfalls
-- 401 from the gateway usually means a `Bearer ` prefix in the secret.
+- 401: check the Secret name and key (`Authorization`). In v1.7.0 a `Bearer ` prefix in the Secret is stripped
+  (**verified** with `kubectl explain agentgatewaymodel.spec.policies.auth`), so it is no longer the usual cause.
 - `model_not_found`: the model name kagent sends matches no `match.model`, or the listener does not allow the
   `AgentgatewayModel` kind.
 - `AgentgatewayModel` is `v1alpha1`: fields can change in the next release. Trust `kubectl explain` on your cluster
@@ -449,6 +451,9 @@ what it did well, what hurt, open **find out** items you could not answer, and a
 
 - [ ] Upgrade kagent `v1.0.0-rc3` → `v1.0.0` with Helm (CRDs, Substrate, kagent; `pg_dump` first; see the upgrade
       line in Deep dives). Then retest `invoke_agent` from Claude Code and report it upstream if it still fails.
+      The Helm-owned `default-model-config` + Secret `kagent-anthropic` were deleted by hand in Phase 2 (2026-11-12);
+      set the kagent values so the upgrade does not recreate them with a real key (**find out** which values:
+      `helm get values kagent`, https://kagent.dev/docs/kagent/1.x/reference/helm/).
 
 ---
 

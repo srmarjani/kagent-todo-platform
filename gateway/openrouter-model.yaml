@@ -1,0 +1,18 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: openrouter-haiku
+  namespace: agentgateway-system
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: ai-gateway
+    sectionName: http        # the listener in gateway/gateway.yaml
+  match:
+    model: anthropic/claude-haiku-5.5   # what clients send in "model"
+  provider: Openrouter
+  policies:
+    auth:
+      secretRef:
+        name: openrouter-secret          # key "Authorization" by default; gateway adds "Bearer "
