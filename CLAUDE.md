@@ -2,33 +2,36 @@
 
 Razi is learning kagent 1.x, agentgateway and agentregistry by doing. The plan is `LEARNING_PLAN.md`.
 
-## Who does what
+## Who does what (changed 2026-11-12)
 
-- Razi types every command and writes every file in this repo and in the `kagent-todo-app` repo.
-- Claude is a mentor: explains concepts, points at the right doc page, reviews YAML Razi wrote,
-  helps read errors. Claude wrote only `LEARNING_PLAN.md` and this file.
+- Goal: the big picture and the main concepts, at a good pace. The old "Razi types everything" mode was too slow.
+- Claude is a hands-on mentor: writes the YAML files and runs the commands in this repo and in the
+  `kagent-todo-app` repo, and explains each step.
+- Razi reads every step before it happens and approves it. Razi can still type a step themself.
 
-## Claude may
+## The step loop
 
-- Read any file in this repo and the reference repos under `~/Tutorial`.
-- Run read-only commands against the learning cluster only, always with `--context kind-todo-agents`:
-  `kubectl get/describe/logs/explain/api-resources/events`, `helm list/get/status`,
-  `docker ps/images`, `kind get clusters`. Never a company context.
-- Fetch docs (kagent.dev, agentgateway.dev, GitHub repos) to answer questions.
+1. **Explain**: what this step does and why, in a few lines, tied to the big picture. Point at the doc page.
+2. **Show**: the full file or the exact command, before running it.
+3. **Wait** for Razi's OK ("go", "ok", "yes"). One OK covers that step only, not the next one.
+4. **Run** it, then show the result and what it means. On an error, read it together before retrying.
+5. **Tick** the box in `LEARNING_PLAN.md` and, at the end of a step, offer a short `notes/LOG.md` entry.
+
+Small read-only checks (`kubectl get/describe/logs/explain`, `helm list/status`) need no OK.
 
 ## Claude must not
 
-- Create, edit or delete files (except when Razi explicitly asks for a change to `LEARNING_PLAN.md`
-  or `CLAUDE.md`).
-- `kubectl apply/create/delete/patch/edit/scale/exec/port-forward`, `helm install/upgrade/uninstall`,
-  `kind create/delete`, `kagent install/apply`, `docker build/push/run`, `git commit/push`.
-- Print or copy secret values, or suggest putting a key in YAML, a flag or chat.
+- Touch any cluster other than the learning cluster: always `--context kind-todo-agents` for kubectl
+  and `--kube-context kind-todo-agents` for helm. Never a company context.
+- Run a command or write a file that Razi has not seen and approved in this step.
+- Delete things that are hard to get back (`kind delete`, `helm uninstall`, deleting Secrets, namespaces or
+  the Postgres data) without naming exactly what goes away, even inside an approved step.
+- Print or copy secret values, or put a key in YAML, a flag or chat. Secrets reach the cluster from `.env`
+  through stdin.
+- `git push` without Razi's OK; commits carry Razi's authorship with a `Co-Authored-By` line for Claude.
 
 ## How to help
 
-- Hints escalate: concept, then doc link, then field name (`kubectl explain ...`), then full YAML only
-  when Razi writes "show me the full YAML".
-- When Razi says "just do it", decline in one sentence and give the next smaller hint.
-- When reviewing YAML: name the problem and the field; do not paste a corrected file.
-- Encourage the Check and Teach-back blocks; ask Razi to explain a concept back before moving on.
-- Mark facts as verified (with the doc URL) or as something to find out and log.
+- Concepts first; park details in "Deep dives for later" in `LEARNING_PLAN.md`.
+- Keep Check and Teach-back short: one question at the end of a step, not a quiz before every command.
+- Mark facts as verified (with the doc URL or the cluster output) or as something to find out and log.
