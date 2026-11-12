@@ -314,21 +314,21 @@ Goal: `team-lead`, `backend-dev`, `frontend-dev`, `devops` deliver the app throu
 deploys it into the cluster.
 
 ### 4.0 Spec and backlog (you write these, 1 h)
-- [ ] In `kagent-todo-app/README.md`: FastAPI app `app/main.py`, SQLite file, endpoints `GET/POST /api/todos`,
+- [x] In `kagent-todo-app/README.md`: FastAPI app `app/main.py`, SQLite file, endpoints `GET/POST /api/todos`,
       `PATCH /api/todos/{id}`, `DELETE /api/todos/{id}`, `GET /healthz`; static `app/static/index.html` + `app.js`
       served by FastAPI; `tests/test_api.py` smoke test with `pytest`; `Dockerfile`; `k8s/` (Deployment, Service
       NodePort 30080, namespace `todo`); `.github/workflows/build.yml` building to
       `ghcr.io/<github-user>/kagent-todo-app:<sha>`.
       Coding rules: complete files, no diffs; one PR per issue; PR body lists files changed and how to test.
-- [ ] Create GitHub issues as the backlog: #1 skeleton + `/healthz` + test; #2 todos API;
-      #3 frontend list/add/toggle/delete; #4 Dockerfile + CI image; #5 k8s manifests + deploy;
-      #6 due date field end to end; #7 filter done/open. Keep each small.
+- [x] Create GitHub issues as the backlog (PR #1 took number 1, so issues are #2–#8): #2 skeleton + `/healthz` + test;
+      #3 todos API; #4 frontend list/add/toggle/delete; #5 Dockerfile + CI image; #6 k8s manifests + deploy;
+      #7 due date field end to end; #8 filter done/open. Keep each small.
 
 ### 4.1 Skills as OCI images (2 h)
-- [ ] `skills/backend-dev/SKILL.md` (front matter `name`, `description`, then rules: FastAPI style, tests, file layout),
+- [x] `skills/backend-dev/SKILL.md` (front matter `name`, `description`, then rules: FastAPI style, tests, file layout),
       same for `frontend-dev` and `devops`. Dockerfile `FROM scratch` + `COPY SKILL.md /SKILL.md`
       (model on `~/Tutorial/agent-factory-demo/agents/skills/python-coding/Dockerfile`).
-- [ ] `docker login ghcr.io` with a PAT that has `write:packages` (a classic PAT for packages is fine; keep it separate
+- [x] `docker login ghcr.io` with a PAT that has `write:packages` (a classic PAT for packages is fine; keep it separate
       from the fine-grained repo PAT), build, push to `ghcr.io/<github-user>/kagent-skills/backend-dev`, make the
       package public, copy the **digest**. Skills must be pinned by digest (**verified**); git sources do not become
       ready in rc3 (**verified**).
@@ -344,20 +344,20 @@ deploys it into the cluster.
 - [ ] `32-devops.yaml`: GitHub tools + `kagent-tool-server` tools `k8s_apply_manifest`, `k8s_get_resources`,
       `k8s_rollout`, `k8s_get_pod_logs`; `requireApproval` on the binding with `k8s_apply_manifest` and on
       `k8s_delete_resource`.
-- [ ] Run issue #1 through `backend-dev` (UI session so you can approve). Review the PR on GitHub, run it locally
-      (`uvicorn`, `pytest`), merge. Then #2, then #3 with `frontend-dev`.
+- [ ] Run issue #2 through `backend-dev` (UI session so you can approve). Review the PR on GitHub, run it locally
+      (`uvicorn`, `pytest`), merge. Then #3, then #4 with `frontend-dev`.
 - [ ] Count tokens and cost per issue on the OpenRouter activity page; write it in the log.
 
 ### 4.3 Team lead, two patterns (3–4 h)
 - [ ] **Pattern A, hand-off**: `40-team-lead.yaml` with `tools: - subAgent: {name, description, templateRef}` for the
-      three specialists. Send issue #6. Observe (**verified** behaviour): the turn is transferred to one specialist
+      three specialists. Send issue #7. Observe (**verified** behaviour): the turn is transferred to one specialist
       and stays there; the lead does not get the result back and cannot sequence backend, frontend, devops.
       Write down when this pattern is enough (routing) and when it is not (orchestration).
 - [ ] **Pattern B, call-and-return**: `21-mcp-kagent.yaml`: `RemoteMCPServer kagent-agents` with
       `url: http://kagent-controller.kagent.svc.cluster.local:8083/mcp`, `STREAMABLE_HTTP`. New `team-lead` template
       binding `list_agents`, `invoke_agent`, `get_session`, with a prompt: split the issue into backend, frontend,
       devops tasks; call each specialist in order with the PR link of the previous step; report all PR links.
-      Send issue #6 again.
+      Send issue #7 again.
       Limitation to design around (**verified**): a blocking `invoke_agent` cannot surface a specialist's approval
       question. So for specialists called this way, remove `requireApproval` and let **PR review** be the human gate;
       keep `requireApproval` only on `devops` cluster writes, and run devops directly (not via the lead) or tell the
@@ -365,14 +365,14 @@ deploys it into the cluster.
 - [ ] Compare A and B in the log: which one would you use for a real team, and why.
 
 ### 4.4 Deploy (2 h)
-- [ ] Issue #4: `devops` writes Dockerfile + GitHub Actions; merge; confirm the image in ghcr.io (public).
-- [ ] Issue #5: `devops` writes `k8s/` and applies to namespace `todo` after your approval.
+- [ ] Issue #5: `devops` writes Dockerfile + GitHub Actions; merge; confirm the image in ghcr.io (public).
+- [ ] Issue #6: `devops` writes `k8s/` and applies to namespace `todo` after your approval.
       Open http://localhost:8080 (kind maps 30080). Add a todo. Celebrate.
 - [ ] Break it on purpose: scale the Deployment to 0 or set a wrong image tag, ask `devops` to diagnose and fix
       (approval on apply).
 
 Check
-- [ ] Issues #1 to #5 closed by agent PRs you reviewed; app runs in the cluster; a log entry with tokens/cost per issue
+- [ ] Issues #2 to #6 closed by agent PRs you reviewed; app runs in the cluster; a log entry with tokens/cost per issue
       and the A-vs-B comparison.
 
 Teach-back: explain to a colleague, without the docs, how a message from you reaches a specialist and comes back
@@ -440,7 +440,7 @@ Read: https://kagent.dev/docs/kagent/1.x/agents/agent-harness/ (Claude section)
       can clone, `pip install`, run `pytest`, push. **Find out**: how to let git push without the PAT entering the sandbox.
       Candidate: git sends a placeholder header via `-c http.extraHeader="Authorization: Basic x"` and the EgressPolicy
       replaces it with `prefix: "Basic "` + a Secret holding `base64(x-access-token:<pat>)`.
-- [ ] Run issue #7 with it. Compare with Phase 4: PR quality, whether tests were actually run, tokens, wall time,
+- [ ] Run issue #8 with it. Compare with Phase 4: PR quality, whether tests were actually run, tokens, wall time,
       what you lost (per-tool approval, structured output, sub-agent tools).
 
 ## Phase 8: Retro (1 h)
