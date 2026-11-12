@@ -332,19 +332,19 @@ deploys it into the cluster.
       from the fine-grained repo PAT), build, push to `ghcr.io/<github-user>/kagent-skills/backend-dev`, make the
       package public, copy the **digest**. Skills must be pinned by digest (**verified**); git sources do not become
       ready in rc3 (**verified**).
-- [ ] Reference them in the templates:
+- [x] Reference them in the templates:
       `spec.skills: - name: backend-dev, source: {oci: ghcr.io/<github-user>/kagent-skills/backend-dev@sha256:...}`.
 
 ### 4.2 Specialists alone (3–4 h)
-- [ ] A second `AgentgatewayModel` in `gateway/` for the Sonnet ID, and ModelConfig `sonnet-via-gateway` (same
+- [x] A second `AgentgatewayModel` in `gateway/` for the Sonnet ID, and ModelConfig `sonnet-via-gateway` (same
       gateway `baseUrl`) in `agents/10-modelconfigs.yaml`. Coding agents use it; `hello` and `team-lead` stay on
       haiku until 4.3.
-- [ ] `30-backend-dev.yaml`, `31-frontend-dev.yaml`: AgentTemplate (role prompt, repo layout from the README,
+- [x] `30-backend-dev.yaml`, `31-frontend-dev.yaml`: AgentTemplate (role prompt, repo layout from the README,
       GitHub write tools with `requireApproval` on `create_pull_request` only) + Agent on your Harness.
-- [ ] `32-devops.yaml`: GitHub tools + `kagent-tool-server` tools `k8s_apply_manifest`, `k8s_get_resources`,
+- [x] `32-devops.yaml`: GitHub tools + `kagent-tool-server` tools `k8s_apply_manifest`, `k8s_get_resources`,
       `k8s_rollout`, `k8s_get_pod_logs`; `requireApproval` on the binding with `k8s_apply_manifest` and on
       `k8s_delete_resource`.
-- [ ] Run issue #2 through `backend-dev` (UI session so you can approve). Review the PR on GitHub, run it locally
+- [x] Run issue #2 through `backend-dev` (UI session so you can approve). Review the PR on GitHub, run it locally
       (`uvicorn`, `pytest`), merge. Then #3, then #4 with `frontend-dev`.
 - [ ] Count tokens and cost per issue on the OpenRouter activity page; write it in the log.
 
@@ -505,6 +505,13 @@ From Phase 2–3 (2026-11-12):
   Secrets). A tool binding limits what the model sees, not what the server can do; even `k8s_get_resources` can
   read Secrets. Fix with RBAC: a read-only tool server without Secrets (Helm values or a second instance).
 - Logs: `atenet-egress` logs at debug level, so DNS lines rotate request lines out within hours.
+
+From Phase 4 (2026-11-12):
+- Silent model hangs: a streaming call with no first token blocks the agent for minutes. agentgateway `timeouts`
+  (`request`, `responseIdle`) and `retry` only apply to models attached through an HTTPRoute; attaching models to
+  the Gateway directly gives no timeout. Try path-scoped models on an HTTPRoute + `AgentgatewayPolicy` timeouts.
+- Prompt caching: every loop round resends ~10–20k tokens of system prompt, tools and skill at full price
+  (`cache_read=0`). Find out whether OpenRouter + the gateway can cache them, and what it saves.
 
 ## Facts verified on 2026-11-09 (sources)
 

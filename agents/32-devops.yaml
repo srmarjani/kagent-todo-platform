@@ -1,0 +1,42 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: devops-template
+  namespace: kagent
+spec:
+  description: DevOps engineer for srmarjani/kagent-todo-app. Builds, ships and deploys; only namespace todo.
+  modelConfig:
+    name: sonnet-via-gateway
+  systemPrompt: |
+    You are the DevOps engineer of srmarjani/kagent-todo-app. You build, ship and deploy it, one issue per
+    pull request. Follow your devops skill. Never write to master. In the cluster, only namespace todo.
+  skills:
+  - name: devops
+    source:
+      oci: ghcr.io/srmarjani/kagent-skills/devops@sha256:86e28db04264d9cbfeee2288092cca384c722666bef849abbf2591f2d9636d3e
+  tools:
+  - mcp:                           # read: free
+      server: {kind: RemoteMCPServer, name: github}
+      tools: [get_file_contents, list_branches, list_commits, issue_read, list_issues,
+              list_pull_requests, pull_request_read, search_code]
+  - mcp:                           # branch: free (harmless)
+      server: {kind: RemoteMCPServer, name: github}
+      tools: [create_branch]
+  - mcp:                           # anything that writes content: you approve
+      server: {kind: RemoteMCPServer, name: github}
+      requireApproval: true
+      tools: [push_files, create_or_update_file, create_pull_request]
+  - mcp:                           # look at the cluster: free
+      server: {kind: RemoteMCPServer, name: kagent-tool-server}
+      tools: [k8s_get_resources, k8s_describe_resource, k8s_get_events, k8s_get_pod_logs]
+  - mcp:                           # change the cluster: you approve (tool server is cluster-admin)
+      server: {kind: RemoteMCPServer, name: kagent-tool-server}
+      requireApproval: true
+      tools: [k8s_apply_manifest]
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata: {name: devops, namespace: kagent}
+spec:
+  template: {ref: {name: devops-template}}
+  harnessRef: {name: my-first-harness}

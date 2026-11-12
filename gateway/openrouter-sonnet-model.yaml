@@ -1,0 +1,15 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayModel
+metadata:
+  name: openrouter-sonnet
+  namespace: agentgateway-system
+spec:
+  parentRefs:
+  - {group: gateway.networking.k8s.io, kind: Gateway, name: ai-gateway, sectionName: http}
+  match:
+    model: anthropic/claude-sonnet-5.5
+  provider: Openrouter
+  policies:
+    auth:
+      secretRef:
+        name: openrouter-secret    # same key, second model

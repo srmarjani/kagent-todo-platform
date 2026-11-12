@@ -160,3 +160,42 @@
 - Agent identity on GitHub (bot account / GitHub App) and at the AI gateway.
 - Read-only RBAC for `kagent-tool-server`.
 - Merge PR #1 (my call).
+
+## 2026-11-12 — Phase 4.0–4.2: spec, skills, specialists, issues #2–#4
+
+- 4.0: README spec (stack, API table, agent rules) pushed to kagent-todo-app `master`; backlog issues #2–#8
+  (PR #1 took number 1). My spec's API table already had `?status=` and date validation, so #3/#4 also did parts
+  of #7/#8. Lesson: spec and backlog must not overlap.
+- 4.1: three skills (`SKILL.md` + `FROM scratch` Dockerfile) pushed to `ghcr.io/srmarjani/kagent-skills/*`,
+  made public, pinned by digest. Used `gh auth refresh -s write:packages` instead of a separate classic PAT.
+  First push of a new GHCR package can fail once with "denied"; a retry works.
+- 4.2: Sonnet 5.5 as a second `AgentgatewayModel` (20× Haiku's price). `backend-dev`, `frontend-dev`, `devops`:
+  Sonnet + skill + GitHub (read free, `create_branch` free, `push_files`/`create_or_update_file`/`create_pull_request`
+  gated); `devops` also k8s read free, `k8s_apply_manifest` gated, no delete/rollout at all.
+- The model opens its skill on demand: `load_skill` shows up as a tool call right at the start.
+
+| Issue | Agent | PR | Model calls | Cost | Result |
+|---|---|---|---|---|---|
+| #2 skeleton | backend-dev | #9 | 6 | ≈ $0.18 | pytest 1 passed, /healthz 200 |
+| #3 todos API | backend-dev | #10 | 7 | ≈ $0.32 | pytest 15 passed, curl checks match spec |
+| #4 frontend | frontend-dev | #11 | 12 + 3 hung | ≈ $0.36 | 8/8 manual browser steps pass |
+
+Costs from the `ai-gateway` log (Sonnet $2/M in, $10/M out). No prompt caching (`cache_read=0`).
+
+### Incident: frontend-dev hangs
+- Three times between ~10:25 and 10:42 a streaming Sonnet call got no first token (up to 8 min 21 s). kagent and
+  the gateway just waited; nothing logged until the request ended.
+- Tests: Sonnet non-streaming OK, Sonnet streaming 503 "connection timed out" once then OK, Haiku OK, direct to
+  OpenRouter OK. Intermittent upstream problem, not my setup. After a 503 the agent retried by itself.
+- How to see it: tool call completed + no new `protocol=llm` line at the gateway = stuck, not thinking.
+- agentgateway `timeouts`/`retry` only apply to models attached via an HTTPRoute, not to models attached directly
+  to the Gateway. A reason for the route-centric style later.
+
+### Findings
+- Agents pin old library versions (FastAPI 0.115.6): a model pins what it remembers.
+- Frontend race: typing while a POST is in flight gets wiped by `form.reset()`. Small; future issue.
+- I merged PR #11 before testing it. Better: test first, then merge.
+
+### Open
+- 4.3 team lead; issues #5–#8.
+- Gateway timeout + retry (Phase 6), prompt caching (Phase 6).

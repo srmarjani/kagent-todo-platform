@@ -1,0 +1,35 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: frontend-dev-template
+  namespace: kagent
+spec:
+  description: Frontend developer for srmarjani/kagent-todo-app. Implements one issue per pull request.
+  modelConfig:
+    name: sonnet-via-gateway
+  systemPrompt: |
+    You are the frontend developer of srmarjani/kagent-todo-app. You work on exactly one issue at a time
+    and deliver it as one pull request. Follow your frontend-dev skill. Never write to master.
+  skills:
+  - name: frontend-dev
+    source:
+      oci: ghcr.io/srmarjani/kagent-skills/frontend-dev@sha256:6bad4edf0270e7441c1cd707f5c8c89dbb2b69e5777717942697a456bdc12b52
+  tools:
+  - mcp:                           # read: free
+      server: {kind: RemoteMCPServer, name: github}
+      tools: [get_file_contents, list_branches, list_commits, issue_read, list_issues,
+              list_pull_requests, pull_request_read, search_code]
+  - mcp:                           # branch: free (harmless)
+      server: {kind: RemoteMCPServer, name: github}
+      tools: [create_branch]
+  - mcp:                           # anything that writes content: you approve
+      server: {kind: RemoteMCPServer, name: github}
+      requireApproval: true
+      tools: [push_files, create_or_update_file, create_pull_request]
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata: {name: frontend-dev, namespace: kagent}
+spec:
+  template: {ref: {name: frontend-dev-template}}
+  harnessRef: {name: my-first-harness}
