@@ -520,6 +520,12 @@ From Phase 4 (2026-11-12):
   plan for the golden-snapshot rebuild (~3 min for 7 agents on one worker).
 - `invoke_agent` blocks until the new Session's Actor accepts the turn (>30 s), but `kagent-api` (chart-managed)
   has `timeout: 30s`. Find the Helm value for it, or bind a copy of the server with `timeout: 120s`.
+- One conversation with the team lead only (Pattern B): approvals run in each specialist's own Session, and the
+  lead must not approve for you. Design: (1) dispatch gate = `requireApproval` on the lead's `invoke_agent`
+  binding (you approve each task text in the lead's chat); (2) merge gate = PR review + branch protection on
+  `master`, with ungated specialist variants for the lead (e.g. `backend-dev-team`). `devops` keeps its
+  cluster-write approval and runs directly. Find out: can `invoke_agent` send an approval into a waiting Session
+  (and why not to use it).
 
 ## Facts verified on 2026-11-09 (sources)
 
