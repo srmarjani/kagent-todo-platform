@@ -4,6 +4,27 @@ config:
   substrate:
     apiEndpoint: dns:///api.ate-system.svc:443
     routerUrl: https://atenet-router.ate-system.svc:443
+  telemetry:                             # controller spans, logs and metrics → OTel Collector (Phase 6.4)
+    traces:
+      endpoint: http://otel-collector.telemetry.svc.cluster.local:4317
+      protocol: grpc
+    logs:
+      endpoint: http://otel-collector.telemetry.svc.cluster.local:4317
+      protocol: grpc
+    metrics:
+      endpoint: http://otel-collector.telemetry.svc.cluster.local:4317
+      protocol: grpc
+  runtimeDefaults:
+    telemetry:                           # compiled into every Agent: each Actor exports too (new revisions)
+      traces:
+        endpoint: http://otel-collector.telemetry.svc.cluster.local:4317
+        protocol: grpc
+      logs:
+        endpoint: http://otel-collector.telemetry.svc.cluster.local:4317
+        protocol: grpc
+      metrics:
+        endpoint: http://otel-collector.telemetry.svc.cluster.local:4317
+        protocol: grpc
 controller:
   substrateClientCertificate:
     enabled: true

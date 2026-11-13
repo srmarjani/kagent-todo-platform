@@ -1,0 +1,83 @@
+# OTel Collector for kagent, Substrate and agentgateway. Config from kagent's lightweight OTel stack guide (1.0.0).
+fullnameOverride: otel-collector
+mode: deployment
+image:
+  repository: otel/opentelemetry-collector-contrib
+ports:
+  metrics-export:
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
+    protocol: TCP
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  processors:
+    batch: {}
+    delta_to_cumulative: {}
+    transform/harness_native_genai:
+      error_mode: ignore
+      trace_statements:
+        - context: span
+          conditions:
+            - resource.attributes["kagent.genai.producer"] == "runtime" and not span.attributes["llm_request.context"] == "standalone"
+          statements:
+            - delete_matching_keys(span.attributes, "^gen_ai\\.(operation\\.name|system|request\\.model|response\\.finish_reasons|usage\\..*)$")
+  connectors:
+    signal_to_metrics:
+      spans:
+        - name: gen_ai.invoke_agent.duration
+          description: The duration of one agent invocation, derived from its span.
+          unit: s
+          conditions:
+            - span.attributes["gen_ai.operation.name"] == "invoke_agent" and instrumentation_scope.name != "github.com/kagent-dev/kagent/go/adk/pkg/a2a/server" and instrumentation_scope.name != "kagent.core.a2a"
+          histogram:
+            buckets: [0.5, 1, 2, 5, 10, 30, 60, 120, 300]
+            value: Seconds(span.end_time - span.start_time)
+          attributes:
+            - key: gen_ai.agent.name
+              optional: true
+            - key: gen_ai.request.model
+              optional: true
+            - key: error.type
+              optional: true
+          include_resource_attributes:
+            - key: service.name
+            - key: service.namespace
+              optional: true
+            - key: service.version
+              optional: true
+            - key: kagent.runtime
+              optional: true
+            - key: gen_ai.main_agent.id
+              optional: true
+  exporters:
+    debug:
+      verbosity: basic
+    otlp_grpc/jaeger:
+      endpoint: jaeger.telemetry.svc.cluster.local:4317
+      tls:
+        insecure: true
+    prometheus:
+      endpoint: 0.0.0.0:8889
+      resource_to_telemetry_conversion:
+        enabled: true
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [transform/harness_native_genai, batch]
+        exporters: [signal_to_metrics, otlp_grpc/jaeger]
+      logs:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [debug]
+      metrics:
+        receivers: [otlp, signal_to_metrics]
+        processors: [delta_to_cumulative, batch]
+        exporters: [prometheus]

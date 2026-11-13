@@ -1,0 +1,19 @@
+# ai-gateway spans → OTel Collector, under its own service name (Substrate's router is also an agentgateway).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: ai-gateway-tracing
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: ai-gateway
+  frontend:
+    tracing:
+      url: http://otel-collector.telemetry.svc.cluster.local:4317
+      protocol: GRPC
+      randomSampling: "true"             # also trace requests that arrive without a traceparent
+      resources:
+      - name: service.name
+        expression: '"ai-gateway"'       # CEL string literal

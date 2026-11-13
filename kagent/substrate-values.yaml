@@ -1,0 +1,26 @@
+# Substrate, installed by `kagent install` on 2026-11-10; values captured from the release, plus otel (Phase 6.4).
+ateApi:
+  authorization:
+    bootstrapOwners:
+    - spiffe://cluster.local/ns/kagent/sa/kagent-controller
+    - system:serviceaccount:ate-system:ate-client
+atelet:
+  enabled: false
+atenetRouter:
+  ingressAllowedSPIFFEIDs:
+  - spiffe://cluster.local/ns/kagent/sa/kagent-controller
+credentialProvider:
+  namespacePolicies:
+  - allowedNamespaces:
+    - kagent
+    atespace: kagent
+postgres:
+  clientCertificates:
+    enabled: true
+preview:
+- PerTemplateSnapshotLocation
+- GoldenEgressPolicy
+otel:
+  endpoint: http://otel-collector.telemetry.svc.cluster.local:4317   # one endpoint for traces, metrics and logs
+  traces:
+    samplingRatio: 1.0                   # default 0.01 keeps 1 trace in 100; the learning cluster keeps all

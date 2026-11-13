@@ -1,0 +1,27 @@
+# Substrate atelet, installed by `kagent install` on 2026-11-10; values captured from the release, plus otel (Phase 6.4).
+ateApi:
+  authorization:
+    bootstrapOwners:
+    - spiffe://cluster.local/ns/kagent/sa/kagent-controller
+    - system:serviceaccount:ate-system:ate-client
+atenetRouter:
+  ingressAllowedSPIFFEIDs:
+  - spiffe://cluster.local/ns/kagent/sa/kagent-controller
+credentialProvider:
+  namespacePolicies:
+  - allowedNamespaces:
+    - kagent
+    atespace: kagent
+objectStore:
+  backend: s3
+  credentialsSecret: kagent-rustfs-credentials   # Secret name only
+  endpoint: http://rustfs.ate-system.svc:9000
+  pathStyle: true
+  region: us-east-1
+preview:
+- PerTemplateSnapshotLocation
+- GoldenEgressPolicy
+otel:
+  endpoint: http://otel-collector.telemetry.svc.cluster.local:4317
+  traces:
+    samplingRatio: 1.0

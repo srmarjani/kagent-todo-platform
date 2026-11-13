@@ -400,3 +400,44 @@ git by CI.
 ### Open
 - 30/min is shared by every agent; Phase 7 (Claude Code) will likely hit it. Raise it or use a token budget first.
 - Does kagent retry on a 429 from the model?
+
+## 2026-11-13 — Phase 6.4: traces (OTel Collector + Jaeger) and one team run
+
+- Stack from kagent's "lightweight OTel stack", traces only (no Prometheus): Jaeger chart 4.4.7 (Jaeger v2.14.1,
+  in-memory) and OTel Collector chart 0.172.0 (contrib 0.159.0) in namespace `telemetry`; values in `telemetry/`.
+- kagent: `config.telemetry` + `config.runtimeDefaults.telemetry` → collector, in `kagent-values-1.0.0.yaml`. All 8
+  agents got new revisions. Sandboxed Actors reach the collector with no EgressPolicy.
+- Substrate: release values captured into `kagent/substrate-values.yaml` and `kagent/substrate-atelet-values.yaml`,
+  plus `otel.endpoint` and `samplingRatio: 1.0` (default 0.01). A guard diffed them against the live releases first
+  (strip comments: `yq '... comments=""'`).
+- ai-gateway: `gateway/tracing.yaml` (`frontend.tracing`, `service.name: ai-gateway`). The `traceparent` survives
+  `atenet-egress`: the gateway span sits under the agent's `HTTP POST`, with model and token counts.
+- Substrate's `atenet-router` and `atenet-egress` are agentgateway v1.7.0 too (service `agentgateway` in Jaeger).
+- One request: controller SendMessage → router → ateapi ResumeActor (authorization checks, lease, AssignWorker) →
+  atelet Restore → gVisor worker (375 ms) → agent → model. 76 of 106 spans are ateapi authorization checks.
+- Haiku 5.5 via OpenRouter reasons on every call: 181 of 190 output tokens for "What is 4+4". `cache_read=0`.
+- Laptop reboot at 13:47 local: the kind node and all pods restarted; in-memory Jaeger lost the lead's first turn and
+  the backend run. First wake after the reboot: atelet image cache miss for `golang-adk`, `oci_unpack` > 60 s →
+  `ResumeActor timed out` → CLI "input was not accepted". Retry reused the layers (19.7 s), then wakes took 0.3 s.
+- Team run on #19 (Pattern B): PR #20 backend (`GET /api/todos/stats`), PR #21 frontend ("Closes #19").
+
+| Trace | Content | Spans |
+|---|---|---|
+| `5fc3ed62` (129 s) | lead's turn + frontend-dev's first turn | 1071 |
+| `fb96879c` (14 s) | frontend-dev after approval 1 | 131 |
+| `dca0a1c1` (21 s) | frontend-dev after approval 2 | 280 |
+| `1c5507b0` (10 s) | lead's final report | 342 |
+
+- `invoke_agent` carries the trace into the specialist; every UI approval and CLI "continue" starts a new trace. A
+  team run = several traces joined by Session IDs.
+- In the trace: the lead's `invoke_agent` fails at 30 s twice (kagent-api timeout) while frontend-dev already runs;
+  the third call with the same message ID returns in 7.5 s. Sonnet input grows 9.8k → 21.3k tokens per round; the
+  file-writing call is 3745 output tokens, 18.6 s. An approval pause shows as `push_files error=true`.
+- Cost of the traced part (OpenRouter prices: Haiku $0.10/$0.50, Sonnet $2/$10 per M): Haiku 9 calls 86.6k in /
+  3.3k out ≈ $0.01; Sonnet 9 calls 171k in / 7k out ≈ $0.41.
+- frontend-dev branched from `master` although the lead said to build on the backend branch (its skill says
+  master). Neither specialist ran tests.
+
+### Open
+- Run pytest and check the header, then merge #20 before #21; #19 closes with #21.
+- Jaeger is in memory only; a restart loses traces.

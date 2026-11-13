@@ -432,8 +432,10 @@ Check
       inline field supports); trigger each once.
       Done 2026-11-13: inline `promptGuard` (no `rateLimit` inline) rejects credentials on both models;
       `gateway/llm-rate-limit.yaml` caps `/v1/` calls at 30/min on the Gateway (30×200, 10×429 in a burst).
-- [ ] Install the lightweight OTel stack (https://kagent.dev/docs/kagent/1.x/observability/lightweight-otel-stack/)
+- [x] Install the lightweight OTel stack (https://kagent.dev/docs/kagent/1.x/observability/lightweight-otel-stack/)
       and read one full team run as a trace.
+      Done 2026-11-13: Jaeger + collector in `telemetry/` (no Prometheus), kagent/Substrate/ai-gateway tracing; team run
+      on #19 (PRs #20, #21) = several traces joined by Session IDs (each approval or "continue" starts a new one).
 
 ## Phase 7 (optional): Claude Code harness comparison (3–4 h)
 
@@ -557,6 +559,13 @@ From Phase 6 (2026-11-12/13):
 - Token budget instead of request count: `local: tokens` keyed by `llm.requestModel` (counted after a response).
 - One prompt guard for all models: `AgentgatewayPolicy` `backend.ai.promptGuard` vs. one inline copy per model.
 - Prompt guard on a real leak: an agent reads a repo file with a fake token (ToolOutput); what kagent shows on 403.
+- How sandboxed Actors reach the OTel collector with no `EgressPolicy` (inferred from `runtimeDefaults.telemetry`?).
+- atelet's image cache is lost on a host reboot: the first wake can pass the 60 s `ResumeActor` limit. Pre-pull the
+  agent image, or find where the limit is set.
+- Haiku 5.5 via OpenRouter spends reasoning tokens on every call (181 of 190 for "4+4"): cap or turn off per model.
+- Metrics skipped in 6.4: Prometheus, `gen_ai.invoke_agent.duration` (signal_to_metrics), controller metrics.
+- One trace per team run: link specialist traces across approvals (span links, or the Session ID as an attribute).
+- Jaeger keeps traces in memory only; Badger on a PVC survives restarts.
 
 ## Facts verified on 2026-11-09 (sources)
 
