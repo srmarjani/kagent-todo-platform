@@ -381,3 +381,22 @@ git by CI.
 ### Open
 - Bypass: in-cluster pods can still call `kagent-controller:8083` directly with no key.
 - Identity: carry the key's `client` into kagent (user header + `trusted-proxy` mode?).
+
+## 2026-11-13 — Phase 6.3: prompt guard and rate limit on the models
+
+- Find-out: an `AgentgatewayModel`'s inline `spec.policies` support `promptGuard`, `authorization`, `auth`, `headers`,
+  `transformations`, `health`, `tls`, `tunnel`, but **not** `rateLimit`. A policy can't target a model.
+- Prompt guard (inline on both models): regex `Reject` for GitHub fine-grained/classic tokens and OpenRouter keys,
+  scope SystemPrompt, Messages, ToolOutput, ToolInput, custom 403 message. Built-ins: CaSin, CreditCard, Email,
+  PhoneNumber, Ssn. Test with a fake `github_pat_` + 82×A: 403 on Haiku and Sonnet in 0 ms, no tokens, never sent
+  to OpenRouter (`reason=Guardrail`). Normal call still 200. One copy per model.
+- Rate limit: `gateway/llm-rate-limit.yaml`, `AgentgatewayPolicy` on the Gateway, `conditional` with
+  `request.path.startsWith("/v1/")` → `local: requests 30 / Minutes`. A burst of 40 in parallel gave 30×200 and
+  10×429 with `x-ratelimit-limit/remaining/reset` and `retry-after`. `/github-mcp` stayed 200.
+- Find-out: a Gateway-level policy does reach models attached directly to the Gateway (`internal/llm:request`).
+- Order: auth → rate limit → prompt guard, so a blocked request still uses rate-limit quota.
+- One bucket for all agents: the gateway sees only `atenet-egress`.
+
+### Open
+- 30/min is shared by every agent; Phase 7 (Claude Code) will likely hit it. Raise it or use a token budget first.
+- Does kagent retry on a 429 from the model?

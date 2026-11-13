@@ -1,0 +1,19 @@
+# Cap model calls through ai-gateway. One bucket for all agents: the gateway sees only atenet-egress as the client.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: llm-rate-limit
+  namespace: agentgateway-system
+spec:
+  targetRefs:                      # a policy can't target an AgentgatewayModel, so it targets the Gateway...
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: ai-gateway
+  traffic:
+    rateLimit:
+      conditional:
+      - condition: 'request.path.startsWith("/v1/")'   # ...but only model calls count; A2A and /github-mcp are not limited
+        policy:
+          local:
+          - requests: 30
+            unit: Minutes          # 30 model calls per minute across all agents; over that → 429

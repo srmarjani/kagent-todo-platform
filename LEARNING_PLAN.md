@@ -427,9 +427,11 @@ Check
 - [x] Expose `team-lead` over A2A through the gateway with an `AgentgatewayPolicy` `apiKeyAuthentication`;
       call it with and without the key. (Pattern: `~/Tutorial/webinar-demos/youtube-series/03-virtual-mcp/readme.md`.)
       Done 2026-11-13: `gateway/team-lead-a2a.yaml` (a2a backend, route for one agent, hashed key in a ConfigMap).
-- [ ] Add a rate limit and a prompt guard for the OpenRouter model (inline `spec.policies` on the
+- [x] Add a rate limit and a prompt guard for the OpenRouter model (inline `spec.policies` on the
       `AgentgatewayModel`, or an `AgentgatewayPolicy` on the Gateway for all models; **find out** which policies the
       inline field supports); trigger each once.
+      Done 2026-11-13: inline `promptGuard` (no `rateLimit` inline) rejects credentials on both models;
+      `gateway/llm-rate-limit.yaml` caps `/v1/` calls at 30/min on the Gateway (30×200, 10×429 in a burst).
 - [ ] Install the lightweight OTel stack (https://kagent.dev/docs/kagent/1.x/observability/lightweight-otel-stack/)
       and read one full team run as a trace.
 
@@ -552,6 +554,9 @@ From Phase 6 (2026-11-12/13):
 - Close the bypass: a NetworkPolicy so only the gateway and the egress pod reach `kagent-controller:8083`.
 - Caller identity into kagent: gateway sets a user header from the key; kagent `trusted-proxy` mode.
 - kagent CLI `--gateway-url`: A2A and MCP through a gateway; how would it send a key?
+- Token budget instead of request count: `local: tokens` keyed by `llm.requestModel` (counted after a response).
+- One prompt guard for all models: `AgentgatewayPolicy` `backend.ai.promptGuard` vs. one inline copy per model.
+- Prompt guard on a real leak: an agent reads a repo file with a fake token (ToolOutput); what kagent shows on 403.
 
 ## Facts verified on 2026-11-09 (sources)
 

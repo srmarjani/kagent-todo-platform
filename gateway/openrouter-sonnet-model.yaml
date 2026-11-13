@@ -13,3 +13,15 @@ spec:
     auth:
       secretRef:
         name: openrouter-secret    # same key, second model
+    promptGuard:
+      request:                           # checked before the request leaves for OpenRouter
+      - regex:
+          action: Reject
+          matches:                       # credentials must never reach the LLM provider
+          - 'github_pat_[A-Za-z0-9_]{82}'   # GitHub fine-grained PAT
+          - 'gh[pousr]_[A-Za-z0-9]{36}'     # GitHub classic tokens
+          - 'sk-or-v1-[a-f0-9]{64}'         # OpenRouter key
+        scope: [SystemPrompt, Messages, ToolOutput, ToolInput]
+        response:
+          statusCode: 403
+          message: "ai-gateway: blocked, the prompt contains a credential (GitHub or OpenRouter token)"
