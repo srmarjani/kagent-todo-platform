@@ -359,3 +359,25 @@ git by CI.
 ### Open
 - No client auth on the `ai-gateway` listener: any pod that reaches it can use the PAT and the OpenRouter key.
 - `registry/10-mcp-servers.yaml` still says the PAT is in `kagent/github-pat`.
+
+## 2026-11-13 — Phase 6.2: team-lead over A2A through the gateway, with an API key
+
+- kagent 1.0 serves A2A **1.0** for every agent on the controller (`:8083/agents/<ns>/<name>`, JSON-RPC).
+  Methods are PascalCase (`SendMessage`, `GetTask`; `tasks/get` = method not found). Header `A2A-Version: 1.0`
+  is required: without it the server assumes 0.3 and refuses. `SendMessage` blocks until the Task is done.
+- `gateway/team-lead-a2a.yaml`: `AgentgatewayBackend` type `a2a` (controller host:port), HTTPRoute on
+  `/agents/kagent/team-lead-orchestrator` only, ConfigMap with `keyHash: sha256:…` + metadata `client: razi-laptop`,
+  `AgentgatewayPolicy apiKeyAuthentication` (Strict) targeting the HTTPRoute, not the Gateway (kagent's own
+  `/v1` and `/github-mcp` calls send no key). The key lives only in `.env`; the gateway stores only its hash.
+- Tests: no key 401, wrong key 401, card 200, GetTask reaches kagent, `devops` path 404 (route not found).
+  Per-agent exposure is done by routing.
+- The `a2a` backend rewrites the card's internal URLs to the gateway address the caller used.
+- Gateway log: `protocol=a2a a2a.method=… a2a.response.outcome`, and every refusal has a reason. One task shows
+  twice: A2A in from the client, LLM out from `atenet-egress` (4693 in / 65 out tokens).
+- New Session's creator = `admin@kagent.dev`: the caller's identity stops at the gateway.
+- Mistake: `.env` had no final newline, so the appended key merged into the OpenRouter line. Fixed with sed;
+  checked by hash against `openrouter-secret`. Check the last byte before appending to `.env`.
+
+### Open
+- Bypass: in-cluster pods can still call `kagent-controller:8083` directly with no key.
+- Identity: carry the key's `client` into kagent (user header + `trusted-proxy` mode?).

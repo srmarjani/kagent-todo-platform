@@ -424,8 +424,9 @@ Check
 - [x] Put the GitHub MCP server behind agentgateway (`AgentgatewayBackend` of type MCP + HTTPRoute `/github-mcp`),
       move the PAT into `agentgateway-system`, repoint the `RemoteMCPServer`. Now both credentials live in the gateway.
       Done 2026-11-12: `gateway/github-mcp.yaml`, PAT in `github-mcp-secret` only (1 of 33 Secrets), no EgressPolicy.
-- [ ] Expose `team-lead` over A2A through the gateway with an `AgentgatewayPolicy` `apiKeyAuthentication`;
+- [x] Expose `team-lead` over A2A through the gateway with an `AgentgatewayPolicy` `apiKeyAuthentication`;
       call it with and without the key. (Pattern: `~/Tutorial/webinar-demos/youtube-series/03-virtual-mcp/readme.md`.)
+      Done 2026-11-13: `gateway/team-lead-a2a.yaml` (a2a backend, route for one agent, hashed key in a ConfigMap).
 - [ ] Add a rate limit and a prompt guard for the OpenRouter model (inline `spec.policies` on the
       `AgentgatewayModel`, or an `AgentgatewayPolicy` on the Gateway for all models; **find out** which policies the
       inline field supports); trigger each once.
@@ -541,6 +542,16 @@ ACL and channels, for company use (checked 2026-11-12):
 - Slack/GitLab: build a small bridge on A2A + push notifications (webhook on "input required" and "done"),
   with approve/reject in the thread. `kagent-dev/a2a-slack-template` exists but is from Aug 2025 (kagent 0.x);
   nothing for GitLab.
+
+From Phase 6 (2026-11-12/13):
+- MCP proxy sessions: the client-facing `Mcp-Session-Id` is a long encoded value, not GitHub's ID (signed or
+  encrypted with `ai-gateway-session-key`?).
+- A2A through the gateway: the rewritten card points GRPC at the agent path (gRPC likely broken on this route),
+  and the card has no `securitySchemes`, so clients can't see a key is needed.
+- Log which key called: custom access-log field from `apiKey` metadata (CEL).
+- Close the bypass: a NetworkPolicy so only the gateway and the egress pod reach `kagent-controller:8083`.
+- Caller identity into kagent: gateway sets a user header from the key; kagent `trusted-proxy` mode.
+- kagent CLI `--gateway-url`: A2A and MCP through a gateway; how would it send a key?
 
 ## Facts verified on 2026-11-09 (sources)
 

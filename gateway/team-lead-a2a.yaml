@@ -1,0 +1,57 @@
+# team-lead-orchestrator over A2A through ai-gateway, API key required. Only this agent's path is routed.
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: team-lead-a2a
+  namespace: agentgateway-system
+spec:
+  a2a:
+    host: kagent-controller.kagent.svc.cluster.local   # kagent serves A2A for all agents on the controller
+    port: 8083
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: team-lead-a2a
+  namespace: agentgateway-system
+spec:
+  parentRefs:
+  - name: ai-gateway
+    sectionName: http
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /agents/kagent/team-lead-orchestrator   # kagent's own path, no rewrite; other agents get no route
+    backendRefs:
+    - group: agentgateway.dev
+      kind: AgentgatewayBackend
+      name: team-lead-a2a
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: team-lead-a2a-keys
+  namespace: agentgateway-system
+  labels:
+    api-key-group: team-lead-a2a
+data:
+  razi-laptop: |                                       # key id; the key itself is only in .env
+    {"keyHash": "sha256:410fecf24a72f438076c7cd77507eef4bb182948d60552c60b27cb8692de7c65", "metadata": {"client": "razi-laptop"}}
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: team-lead-a2a-apikey
+  namespace: agentgateway-system
+spec:
+  targetRefs:                                          # this route only; /v1 models and /github-mcp stay open to kagent
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: team-lead-a2a
+  traffic:
+    apiKeyAuthentication:
+      mode: Strict                                     # missing or wrong key → 401
+      configMapSelector:
+        matchLabels:
+          api-key-group: team-lead-a2a
